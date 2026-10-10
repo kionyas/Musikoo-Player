@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Musikoo</string>
+    <string name="now_playing">Now Playing</string>
+    <string name="select_track">Select Track</string>
+    <string name="unknown_artist">Unknown Artist</string>
+    <string name="track_title_placeholder">Track Title</string>
+    <string name="artist_placeholder">Artist</string>
+    <string name="properties">Details</string>
+    <string name="edit">Edit</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="previous">Previous</string>
+    <string name="next">Next</string>
+    <string name="rewind_10">Rewind 10 seconds</string>
+    <string name="forward_10">Forward 10 seconds</string>
+</resources>
