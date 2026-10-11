@@ -3,14 +3,150 @@
     <string name="now_playing">Now Playing</string>
     <string name="select_track">Select Track</string>
     <string name="unknown_artist">Unknown Artist</string>
+    <string name="unknown_album">Unknown Album</string>
+    <string name="unknown">Unknown</string>
     <string name="track_title_placeholder">Track Title</string>
     <string name="artist_placeholder">Artist</string>
-    <string name="properties">Details</string>
+    <string name="properties">Properties</string>
+    <string name="details">Details</string>
     <string name="edit">Edit</string>
+    <string name="edit_tags">Edit Tags</string>
     <string name="play">Play</string>
     <string name="pause">Pause</string>
     <string name="previous">Previous</string>
     <string name="next">Next</string>
-    <string name="rewind_10">Rewind 10 seconds</string>
-    <string name="forward_10">Forward 10 seconds</string>
+    <string name="rewind_10">Rewind 10s</string>
+    <string name="forward_10">Forward 10s</string>
+    <string name="collapse">Collapse</string>
+    <string name="menu">Menu</string>
+    <string name="back">Back</string>
+
+    <string name="settings">SETTINGS</string>
+    <string name="about">ABOUT</string>
+    <string name="about_subtitle">Musikoo ★ Clean ★ Fast</string>
+    <string name="version">Version %s</string>
+
+    <string name="artists">Artists</string>
+    <string name="songs">Songs</string>
+    <string name="albums">ALBUMS</string>
+    <string name="all_tracks">ALL TRACKS</string>
+    <string name="artists_title">ARTISTS</string>
+    <string name="albums_count">ALBUMS (%d)</string>
+    <string name="artists_count">ARTISTS (%d)</string>
+    <string name="all_tracks_count">ALL TRACKS (%d)</string>
+    <string name="tracks_count">%d tracks</string>
+    <string name="artist_tracks_count">%d tracks in discography</string>
+
+    <string name="pinned">PINNED</string>
+    <string name="playlists">PLAYLISTS</string>
+    <string name="add_to_playlist">Add to Playlist</string>
+    <string name="create_playlist">Create New Playlist</string>
+    <string name="playlist_name">Playlist Name</string>
+    <string name="create">Create</string>
+    <string name="edit_playlist">Edit Playlist</string>
+    <string name="rename_playlist">Rename Playlist</string>
+    <string name="delete_playlist">Delete Playlist</string>
+    <string name="delete_playlist_confirm">Delete playlist \"%s\"?</string>
+    <string name="pin_to_top">Pin to Top</string>
+    <string name="unpin_from_top">Unpin</string>
+    <string name="added_to_playlist">Added to playlist \"%s\"</string>
+    <string name="tip_title">Organize Your Library</string>
+    <string name="tip_text">Create playlists or long-press albums and playlists to pin them to the top of your main menu.</string>
+    <string name="guide_title">Guide: Playlists &amp; Pinned Media</string>
+    <string name="guide_text"># Playlists &amp; Pinned Media\n\n- **Create Playlists**: Long-press any track in songs, albums, or artists to add it to a playlist.\n- **Pin Media**: Long-press any album or playlist to pin it to the top **PINNED** section of the Main Menu.\n- **Edit Playlists**: Long-press a playlist to change its cover, rename it, or reorder tracks.\n- **Collage Covers**: Playlists automatically build a 2x2 collage from track artwork unless a custom cover is picked.</string>
+
+    <string name="favorites">Favorites</string>
+    <string name="add_to_favorites">Add to Favorites</string>
+    <string name="remove_from_favorites">Remove from Favorites</string>
+    <string name="added_to_favorites">Added to Favorites</string>
+    <string name="removed_from_favorites">Removed from Favorites</string>
+    <string name="hide_mini_player">Hide Mini Player</string>
+
+    <string name="playback">Playback</string>
+    <string name="player_notifications">Player Notifications</string>
+    <string name="player_notifications_desc">Enable media player controls in notification shade and lock screen</string>
+    <string name="notification_dialog_title">Player Notifications</string>
+    <string name="notification_dialog_text">Allow Musikoo to post notifications to control music playback from the notification bar, lock screen, and connected devices.</string>
+    <string name="allow">Allow</string>
+    <string name="later">Later</string>
+
+    <string name="library">Library</string>
+    <string name="rescan_library">Rescan Library</string>
+    <string name="rescan_library_desc">Rescan device storage for audio files</string>
+
+    <string name="appearance">Appearance</string>
+    <string name="color_theme">Color Theme</string>
+    <string name="current_theme">Current theme: %s</string>
+    <string name="theme_dynamic">Dynamic Color</string>
+    <string name="theme_dynamic_desc">System dynamic colors based on wallpaper (Material You)</string>
+    <string name="theme_classic">Classic Color (White/Gray)</string>
+    <string name="theme_classic_desc">Monochrome classic color palette</string>
+    <string name="theme_cover">Cover Color</string>
+    <string name="theme_cover_desc">Dynamic color scheme extracted from current playing track art</string>
+
+    <string name="interface_style">Interface Style</string>
+    <string name="current_style">Current style: %s</string>
+    <string name="style_material3">Material 3</string>
+    <string name="style_material3_desc">Classic design: solid surface containers</string>
+    <string name="style_expensive">Expensive</string>
+    <string name="style_expensive_desc">Sleek interface with floating pills and native blur</string>
+
+    <string name="app_icon">App Icon</string>
+    <string name="current_icon">Current icon: %s</string>
+    <string name="icon_black_white">Black &amp; White</string>
+    <string name="icon_black_white_desc">Minimalist dark icon (Default)</string>
+    <string name="icon_white_black">White &amp; Black</string>
+    <string name="icon_white_black_desc">Light high-contrast icon</string>
+    <string name="icon_monet">Monet</string>
+    <string name="icon_monet_desc">Monet aesthetic dynamic icon</string>
+
+    <string name="track_properties">Track Details</string>
+    <string name="prop_title">Title:</string>
+    <string name="prop_artist">Artist:</string>
+    <string name="prop_album">Album:</string>
+    <string name="prop_format">Format:</string>
+    <string name="prop_bitrate">Bitrate:</string>
+    <string name="prop_duration">Duration:</string>
+    <string name="prop_size">Size:</string>
+    <string name="ok">OK</string>
+
+    <string name="delete_from_device">Delete from device</string>
+    <string name="delete_track">Delete Track?</string>
+    <string name="delete_confirm">\"%s\" will be permanently deleted from the device.</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="track_deleted">Track deleted</string>
+    <string name="delete_failed">Failed to delete track</string>
+
+    <string name="tag_editor">Tag Editor</string>
+    <string name="tag_title">Title</string>
+    <string name="tag_artist">Artist</string>
+    <string name="tag_album">Album</string>
+    <string name="tag_album_artist">Album Artist</string>
+    <string name="tag_composer">Composer</string>
+    <string name="tag_genre">Genre</string>
+    <string name="tag_lyricist">Lyricist</string>
+    <string name="tag_track_num">Track Number</string>
+    <string name="tag_disc_num">Disc Number</string>
+    <string name="tag_year">Year</string>
+    <string name="tag_comment">Comment</string>
+    <string name="save">Save</string>
+    <string name="tags_saved">Tags saved</string>
+    <string name="tags_save_failed">Failed to save tags</string>
+    <string name="replace_cover">Change Cover</string>
+    <string name="remove_cover">Remove Cover</string>
+    <string name="different_values">Different values</string>
+    <string name="saving_progress">Saving: %d of %d</string>
+    <string name="saving_tags_failed">Failed to save: %s</string>
+    <string name="write_permission_denied">Write permission denied</string>
+    <string name="image_open_failed">Failed to open image</string>
+    <string name="batch_edit_hint">Changes will apply to all selected tracks. Fields with \"Different values\" will remain unchanged unless filled.</string>
+
+    <string name="random">Random</string>
+    <string name="shuffle">Shuffle</string>
+    <string name="repeat">Repeat</string>
+    <string name="repeat_all">Repeat: All</string>
+    <string name="repeat_one">Repeat: One</string>
+    <string name="widget_label">Musikoo</string>
+    <string name="widget_description">Playback controls and now playing</string>
 </resources>

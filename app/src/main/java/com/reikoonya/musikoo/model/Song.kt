@@ -22,5 +22,6 @@ data class Song(
     val size: Long,
     val mimeType: String,
     val bitrate: String,
-    val albumArt: Bitmap?
+    val albumArt: Bitmap?,
+    val albumId: Long = 0L
 )

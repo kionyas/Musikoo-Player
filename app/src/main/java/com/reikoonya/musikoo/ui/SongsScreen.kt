@@ -12,18 +12,30 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.reikoonya.musikoo.R
 import com.reikoonya.musikoo.model.Song
+import com.reikoonya.musikoo.ui.components.ActionsDialog
+import com.reikoonya.musikoo.ui.components.AddToPlaylistDialog
+import com.reikoonya.musikoo.ui.components.ArtBackdrop
+import com.reikoonya.musikoo.ui.components.MenuAction
+import com.reikoonya.musikoo.ui.components.TopFadeScrim
+import com.reikoonya.musikoo.ui.components.bounceClickable
+import com.reikoonya.musikoo.ui.components.bounceCombinedClickable
+import com.reikoonya.musikoo.ui.components.cardFill
+import com.reikoonya.musikoo.ui.components.glassFill
+import com.reikoonya.musikoo.ui.components.glassStroke
+import com.reikoonya.musikoo.ui.components.nowPlayingArt
 import com.reikoonya.musikoo.util.formatTime
 
 @Composable
@@ -34,6 +46,43 @@ fun SongsScreen(
 ) {
     val sortedSongs = remember(songs) {
         songs.sortedBy { it.title.lowercase() }
+    }
+
+    var actionSong by remember { mutableStateOf<Song?>(null) }
+    var editSongs by remember { mutableStateOf<List<Song>?>(null) }
+    var addToPlaylistSongIds by remember { mutableStateOf<List<Long>?>(null) }
+
+    actionSong?.let { song ->
+        ActionsDialog(
+            title = song.title,
+            actions = listOf(
+                MenuAction(Icons.Default.PlaylistAdd, stringResource(R.string.add_to_playlist)) {
+                    addToPlaylistSongIds = listOf(song.id)
+                    actionSong = null
+                },
+                MenuAction(Icons.Default.Edit, stringResource(R.string.edit_tags)) {
+                    editSongs = listOf(song)
+                    actionSong = null
+                }
+            ),
+            onDismiss = { actionSong = null }
+        )
+    }
+
+    addToPlaylistSongIds?.let { ids ->
+        AddToPlaylistDialog(
+            songIds = ids,
+            allSongs = songs,
+            onDismiss = { addToPlaylistSongIds = null }
+        )
+    }
+
+    editSongs?.let { list ->
+        TagEditorDialog(
+            songs = list,
+            onDismiss = { editSongs = null },
+            onSaved = {}
+        )
     }
 
     Box(
@@ -47,53 +96,142 @@ fun SongsScreen(
                 }
             }
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ArtBackdrop(art = nowPlayingArt(), topScrim = 0.55f, midScrim = 0.82f)
+
+        // List fills entire screen and scrolls underneath floating top pill
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(top = 92.dp, bottom = 24.dp, start = 16.dp, end = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Sheet Top Bar
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            itemsIndexed(sortedSongs) { _, song ->
                 Surface(
                     modifier = Modifier
-                        .size(44.dp)
-                        .clickable { onBackClick() },
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    tonalElevation = 2.dp
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(26.dp))
+                        .bounceCombinedClickable(
+                            onLongClick = { actionSong = song }
+                        ) {
+                            val globalIndex = songs.indexOf(song)
+                            if (globalIndex >= 0) {
+                                onSongClick(globalIndex)
+                            }
+                        },
+                    shape = RoundedCornerShape(26.dp),
+                    color = cardFill(),
+                    border = glassStroke(),
+                    tonalElevation = 1.dp
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Назад",
-                            tint = MaterialTheme.colorScheme.onSurface
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(RoundedCornerShape(20.dp)),
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            if (song.albumArt != null) {
+                                Image(
+                                    bitmap = song.albumArt.asImageBitmap(),
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.MusicNote,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = song.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = song.artist,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        Text(
+                            text = formatTime(song.duration),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
+            }
+        }
 
+        // Top gradient scrim
+        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
+
+        // Floating Top Bar Pill
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier
+                    .size(44.dp)
+                    .bounceClickable { onBackClick() },
+                shape = CircleShape,
+                color = glassFill(),
+                border = glassStroke(),
+                tonalElevation = 2.dp
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = stringResource(R.string.back),
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            Surface(
+                shape = RoundedCornerShape(32.dp),
+                color = glassFill(),
+                border = glassStroke()
+            ) {
                 Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 12.dp),
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Box(
                         modifier = Modifier
-                            .width(36.dp)
-                            .height(4.dp)
+                            .width(28.dp)
+                            .height(3.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "ВСЕ ТРЕКИ (${sortedSongs.size})",
+                        text = stringResource(R.string.all_tracks_count, sortedSongs.size),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -101,88 +239,9 @@ fun SongsScreen(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-
-                Spacer(modifier = Modifier.size(44.dp))
             }
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                itemsIndexed(sortedSongs) { _, song ->
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(26.dp))
-                            .clickable {
-                                val globalIndex = songs.indexOf(song)
-                                if (globalIndex >= 0) {
-                                    onSongClick(globalIndex)
-                                }
-                            },
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        tonalElevation = 1.dp
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Surface(
-                                modifier = Modifier
-                                    .size(52.dp)
-                                    .clip(RoundedCornerShape(20.dp)),
-                                color = MaterialTheme.colorScheme.primaryContainer
-                            ) {
-                                if (song.albumArt != null) {
-                                    Image(
-                                        bitmap = song.albumArt.asImageBitmap(),
-                                        contentDescription = null,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                } else {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.Default.MusicNote,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            }
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                Text(
-                                    text = song.title,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = song.artist,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                            Text(
-                                text = formatTime(song.duration),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
+            Spacer(modifier = Modifier.size(44.dp))
         }
     }
 }

@@ -13,23 +13,64 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.reikoonya.musikoo.R
+import com.reikoonya.musikoo.ui.components.ActionsDialog
+import com.reikoonya.musikoo.ui.components.ArtBackdrop
+import com.reikoonya.musikoo.ui.components.MenuAction
+import com.reikoonya.musikoo.ui.components.TopFadeScrim
+import com.reikoonya.musikoo.ui.components.bounceCombinedClickable
+import com.reikoonya.musikoo.ui.components.bounceClickable
+import com.reikoonya.musikoo.ui.components.cardFill
+import com.reikoonya.musikoo.ui.components.glassFill
+import com.reikoonya.musikoo.ui.components.glassStroke
+import com.reikoonya.musikoo.ui.components.listItemColors
+import com.reikoonya.musikoo.ui.components.nowPlayingArt
 import com.reikoonya.musikoo.model.Song
 
 @Composable
 fun AlbumsScreen(
     songs: List<Song>,
     onAlbumClick: (String) -> Unit,
+    onSongsEdited: (List<Song>) -> Unit = {},
     onBackClick: () -> Unit
 ) {
     val albums = songs.groupBy { it.album }
+
+    var actionsAlbum by remember { mutableStateOf<String?>(null) }
+    var editSongs by remember { mutableStateOf<List<Song>?>(null) }
+
+    actionsAlbum?.let { name ->
+        ActionsDialog(
+            title = name,
+            actions = listOf(
+                MenuAction(Icons.Default.Edit, stringResource(R.string.edit_tags)) {
+                    editSongs = albums[name].orEmpty()
+                    actionsAlbum = null
+                }
+            ),
+            onDismiss = { actionsAlbum = null }
+        )
+    }
+    editSongs?.let { list ->
+        TagEditorDialog(
+            songs = list,
+            onDismiss = { editSongs = null },
+            onSaved = onSongsEdited
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -42,53 +83,118 @@ fun AlbumsScreen(
                 }
             }
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+        ArtBackdrop(art = nowPlayingArt(), topScrim = 0.55f, midScrim = 0.82f)
+
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(top = 92.dp, bottom = 24.dp, start = 16.dp, end = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Sheet Top Bar
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
+            items(albums.entries.toList()) { (albumName, albumSongs) ->
+                Card(
                     modifier = Modifier
-                        .size(44.dp)
-                        .clickable { onBackClick() },
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    tonalElevation = 2.dp
+                        .fillMaxWidth()
+                        .bounceCombinedClickable(onLongClick = { actionsAlbum = albumName }) { onAlbumClick(albumName) },
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = cardFill()
+                    ),
+                    border = glassStroke()
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowUp,
-                            contentDescription = "Назад",
-                            tint = MaterialTheme.colorScheme.onSurface
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(80.dp),
+                            shape = RoundedCornerShape(24.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Album,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(40.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = albumName,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Text(
+                            text = stringResource(R.string.tracks_count, albumSongs.size),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
+            }
+        }
 
+        // Top gradient scrim
+        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
+
+        // Floating Top Bar Pill
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier
+                    .size(44.dp)
+                    .bounceClickable { onBackClick() },
+                shape = CircleShape,
+                color = glassFill(),
+                border = glassStroke(),
+                tonalElevation = 2.dp
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = stringResource(R.string.back),
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            Surface(
+                shape = RoundedCornerShape(32.dp),
+                color = glassFill(),
+                border = glassStroke()
+            ) {
                 Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 12.dp),
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Box(
                         modifier = Modifier
-                            .width(36.dp)
-                            .height(4.dp)
+                            .width(28.dp)
+                            .height(3.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "АЛЬБОМЫ (${albums.size})",
+                        text = stringResource(R.string.albums_count, albums.size),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -96,68 +202,9 @@ fun AlbumsScreen(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-
-                Spacer(modifier = Modifier.size(44.dp))
             }
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(albums.entries.toList()) { (albumName, albumSongs) ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onAlbumClick(albumName) },
-                        shape = RoundedCornerShape(32.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                        )
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Surface(
-                                modifier = Modifier.size(80.dp),
-                                shape = RoundedCornerShape(24.dp),
-                                color = MaterialTheme.colorScheme.primaryContainer
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Default.Album,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(40.dp),
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                text = albumName,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Text(
-                                text = "${albumSongs.size} треков",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    }
-                }
-            }
+            Spacer(modifier = Modifier.size(44.dp))
         }
     }
 }

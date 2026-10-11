@@ -5,7 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -24,16 +23,26 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.reikoonya.musikoo.R
+import com.reikoonya.musikoo.ui.components.ArtBackdrop
+import com.reikoonya.musikoo.ui.components.TopFadeScrim
+import com.reikoonya.musikoo.ui.components.bounceClickable
+import com.reikoonya.musikoo.ui.components.cardFill
+import com.reikoonya.musikoo.ui.components.glassFill
+import com.reikoonya.musikoo.ui.components.glassStroke
+import com.reikoonya.musikoo.ui.components.nowPlayingArt
+import com.reikoonya.musikoo.ui.theme.LocalFancyStyle
 
 private fun loadChangelog(context: Context): String {
     return try {
         context.assets.open("changelog.md").bufferedReader().use { it.readText() }
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         "# Initial release\n- Musikoo Audio Player\n- Material 3 Expressive UI"
     }
 }
@@ -43,14 +52,14 @@ private fun loadBannerBitmap(context: Context): Bitmap? {
         context.assets.open("banner.jpg").use { stream ->
             BitmapFactory.decodeStream(stream)
         }
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         null
     }
 }
 
 @Composable
 fun AboutScreen(
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
 ) {
     val context = LocalContext.current
     val changelogText = remember { loadChangelog(context) }
@@ -67,73 +76,28 @@ fun AboutScreen(
                 }
             }
     ) {
+        ArtBackdrop(art = nowPlayingArt(), topScrim = 0.55f, midScrim = 0.82f)
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = 24.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Sheet Top Bar
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clickable { onBackClick() },
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    tonalElevation = 2.dp
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowUp,
-                            contentDescription = "Назад",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
+            Spacer(modifier = Modifier.height(64.dp))
 
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(36.dp)
-                            .height(4.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "О ПРИЛОЖЕНИИ",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                Spacer(modifier = Modifier.size(44.dp))
-            }
-
-            // Rounded Banner Card (loads banner.jpg from assets automatically if present)
+            // Rounded Banner Card
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(130.dp),
+                    .height(170.dp),
                 shape = RoundedCornerShape(32.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                colors = CardDefaults.cardColors(containerColor = cardFill()),
+                border = glassStroke(),
+                elevation = CardDefaults.cardElevation(defaultElevation = if (LocalFancyStyle.current) 0.dp else 2.dp)
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -167,32 +131,49 @@ fun AboutScreen(
                 }
             }
 
-            // Text Info: Musikoo ★ Удобно ★ Легко / Version 1.0.0
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+            // Info Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = cardFill()),
+                border = glassStroke()
             ) {
-                Text(
-                    text = "Musikoo ★ Удобно ★ Легко",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Version 1.0.0",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(R.string.about_subtitle),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = stringResource(R.string.version, "1.0.0"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
-            // Cool Code-style Changelog Screen/Card (reading changelog.md)
+            // Code-style Changelog Card
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    .height(260.dp),
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = cardFill(MaterialTheme.colorScheme.surfaceContainerHighest)),
+                border = glassStroke(),
+                elevation = CardDefaults.cardElevation(defaultElevation = if (LocalFancyStyle.current) 0.dp else 1.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -233,6 +214,70 @@ fun AboutScreen(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        // Top gradient scrim
+        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
+
+        // Floating Top Bar Pill
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier
+                    .size(44.dp)
+                    .bounceClickable { onBackClick() },
+                shape = CircleShape,
+                color = glassFill(),
+                border = glassStroke(),
+                tonalElevation = 2.dp
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = stringResource(R.string.back),
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            Surface(
+                shape = RoundedCornerShape(32.dp),
+                color = glassFill(),
+                border = glassStroke()
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(28.dp)
+                            .height(3.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.about),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.size(44.dp))
         }
     }
 }
