@@ -1,8 +1,15 @@
 # Changelog
 
+## 1.1.1
+
+### Fixes
+- Tag editing works again: the tag library is now the Android build, so saving tags no longer fails.
+- Clearer error reporting when a tag cannot be written.
+- Fixed about screen.
+
 ## 1.1.0
 
-### Library
+### Library and optimization
 - Rescan no longer freezes the app; scanning runs in the background.
 - The library appears as soon as audio permission is granted, no restart needed.
 - Album art loads in the background, one request per album.
@@ -10,14 +17,8 @@
 
 ### Playlists
 - Reorder songs in a playlist by long-pressing the handle on the right and dragging.
-- Tapping a song plays it; the ⋮ button opens its menu.
 - The new order is saved and used as the playback queue.
-- Fixed bug when playlist order not even was playlist lol
-
-### Player
-- Working shuffle and repeat buttons (off, all, one track). Settings are remembered.
-- Album and artist queues play in the same order as on screen.
-- Long-press an album to edit its tags; the tag editor also works for single songs.
+- Fixed a bug where playlist order was not saved correctly.
 
 ### Last.fm and statistics
 - Connect your Last.fm account in Settings.
@@ -26,13 +27,9 @@
 - Switch between Home and Statistics from the compact top pill.
 
 ### Interface
-- Home screen widget with cover, title, artist and playback controls (Material 3 Expressive, dynamic colors).
-- Widget is compact (cover, title, artist, small controls), updates instantly, and follows the app's color setting without re-adding it.
 - Compact top pill; the mode selector expands on tap.
 - Settings are grouped into sections.
-
-### Widgets
-- Added cute widget :3
+- Cute widget for your home screen :3
 
 ## 1.0.0
 

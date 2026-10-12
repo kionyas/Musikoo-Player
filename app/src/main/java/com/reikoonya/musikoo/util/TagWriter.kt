@@ -8,6 +8,7 @@ import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.media.MediaScannerConnection
 import android.net.Uri
+import android.util.Log
 import android.os.Build
 import com.reikoonya.musikoo.model.Song
 import kotlinx.coroutines.CancellationException
@@ -195,6 +196,7 @@ object TagWriter {
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
+            Log.e("TagWriter", "Tag write failed for ${song.dataPath}", e)
             WriteResult.Failed(e.message ?: e.javaClass.simpleName)
         } finally {
             temp.delete()

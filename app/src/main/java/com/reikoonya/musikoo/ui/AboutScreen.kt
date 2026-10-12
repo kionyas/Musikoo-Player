@@ -158,7 +158,7 @@ fun AboutScreen(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = stringResource(R.string.version, "1.0.0"),
+                        text = stringResource(R.string.version, "1.1.1"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
