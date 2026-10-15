@@ -1,21 +1,25 @@
-## Musikoo-Player
+## ★ Musikoo-Player ★ 
 
-# Comfortable Main menu
+# ★ Comfortable Main menu
 - Pins, Playlists, Albums, all in one place
 - Buttons for Artist and Songs Pages
 - Funny mini-player :D
-<img width="3464" height="3464" alt="Picsart_26-10-12_13-57-38-448" src="https://github.com/user-attachments/assets/63aa0164-f3ff-4475-b443-4b6f961ae4a5" />
+- Smart search bar
+<img width="2400" height="2400" alt="collage" src="https://github.com/user-attachments/assets/b1cf6ae8-a96f-4b79-8fb1-2f1d7272f384" />
 
-# Utils
+
+# ★ Utils
 - Highly customizable playlists
 - Tag (Meatadata) editor, you can change anything!
-<img width="3464" height="3464" alt="Picsart_26-10-12_13-58-31-750" src="https://github.com/user-attachments/assets/d1f63676-0751-47e9-9ea2-70d20e42815b" />
+<img width="2400" height="2400" alt="collage_2" src="https://github.com/user-attachments/assets/86b688f6-8ffb-45c5-b521-7978634ef0da" />
 
-# Design & Statistics 
+
+# ★ Design & Statistics 
 - Scrobble in my app, you can add your LastFM account!!
 - Stylish MD3 design with smooth animations and light perfomace
 - Style, Color, Icon customization!!
-<img width="3464" height="3464" alt="Picsart_26-10-12_13-59-17-419" src="https://github.com/user-attachments/assets/b7516166-8398-4721-8215-ea3d9c9dc057" />
+<img width="2400" height="2400" alt="collage_3" src="https://github.com/user-attachments/assets/dae3f1c6-e8cb-4760-9ac8-39fdad8aa7a0" />
 
-## Enjoy.
+
+## ★ Enjoy ★
 
