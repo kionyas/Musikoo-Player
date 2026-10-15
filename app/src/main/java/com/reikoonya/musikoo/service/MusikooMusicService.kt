@@ -26,8 +26,9 @@ class MusikooMusicService : MediaSessionService() {
                 .build(),
         )
 
-        // IMPORTANT: without this the service doesn't know about the session, and Media3 doesn't call
-        // startForeground(), no notification appears, and the app crashes after ~5 seconds.
+        if (MusicPlayerManager.mediaSession == null) {
+            MusicPlayerManager.initPlayer(applicationContext)
+        }
         MusicPlayerManager.mediaSession?.let { addSession(it) }
     }
 
@@ -44,6 +45,9 @@ class MusikooMusicService : MediaSessionService() {
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
+        if (MusicPlayerManager.mediaSession == null) {
+            MusicPlayerManager.initPlayer(applicationContext)
+        }
         return MusicPlayerManager.mediaSession
     }
 

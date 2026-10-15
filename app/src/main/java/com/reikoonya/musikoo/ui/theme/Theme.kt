@@ -138,11 +138,11 @@ private fun createCoverColorScheme(
     }
 
     return if (darkTheme) {
-        val primary = hsvColor(hue, (sat * 0.9f).coerceAtLeast(0.45f), 0.95f)
-        val onPrimary = Color(0xFF101010)
-        val primaryContainer = hsvColor(hue, (sat * 0.6f).coerceIn(0.25f, 0.65f), 0.35f)
-        val onPrimaryContainer = hsvColor(hue, (sat * 0.3f).coerceAtMost(0.4f), 0.95f)
-        val secondary = hsvColor((hue + 20f) % 360f, (sat * 0.6f).coerceIn(0.2f, 0.5f), 0.85f)
+        val primary = hsvColor(hue, (sat * 1.3f).coerceAtLeast(0.65f), 0.98f)
+        val onPrimary = Color(0xFF0C0C0C)
+        val primaryContainer = hsvColor(hue, (sat * 0.85f).coerceIn(0.35f, 0.8f), 0.42f)
+        val onPrimaryContainer = hsvColor(hue, (sat * 0.4f).coerceAtMost(0.5f), 0.98f)
+        val secondary = hsvColor((hue + 25f) % 360f, (sat * 0.75f).coerceIn(0.3f, 0.7f), 0.90f)
 
         fallback.copy(
             primary = primary,
@@ -150,13 +150,13 @@ private fun createCoverColorScheme(
             primaryContainer = primaryContainer,
             onPrimaryContainer = onPrimaryContainer,
             secondary = secondary,
-            tertiary = hsvColor((hue + 40f) % 360f, (sat * 0.5f).coerceIn(0.2f, 0.5f), 0.90f)
+            tertiary = hsvColor((hue + 45f) % 360f, (sat * 0.7f).coerceIn(0.3f, 0.6f), 0.92f)
         )
     } else {
-        val primary = hsvColor(hue, (sat * 0.95f).coerceAtLeast(0.55f), 0.50f)
+        val primary = hsvColor(hue, (sat * 1.25f).coerceAtLeast(0.7f), 0.48f)
         val onPrimary = Color.White
-        val primaryContainer = hsvColor(hue, (sat * 0.25f).coerceIn(0.15f, 0.4f), 0.92f)
-        val onPrimaryContainer = hsvColor(hue, (sat * 0.9f).coerceAtLeast(0.6f), 0.25f)
+        val primaryContainer = hsvColor(hue, (sat * 0.35f).coerceIn(0.2f, 0.5f), 0.88f)
+        val onPrimaryContainer = hsvColor(hue, (sat * 0.95f).coerceAtLeast(0.7f), 0.20f)
 
         fallback.copy(
             primary = primary,

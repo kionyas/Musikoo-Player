@@ -14,20 +14,45 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.reikoonya.musikoo.ui.theme.LocalFancyStyle
 
 /**
- * Fill for chips and buttons: an opaque surface with no see-through.
+ * Fill for chips and buttons: an opaque surface tinted with expressive accent when fancy style is active.
  */
 @Composable
-fun glassFill(classic: Color = MaterialTheme.colorScheme.surfaceContainerHighest): Color = classic
+fun glassFill(classic: Color = MaterialTheme.colorScheme.surfaceContainerHighest): Color {
+    val primaryContainer = MaterialTheme.colorScheme.primaryContainer
+    return if (LocalFancyStyle.current) {
+        Color(
+            red = (classic.red * 0.65f + primaryContainer.red * 0.35f).coerceIn(0f, 1f),
+            green = (classic.green * 0.65f + primaryContainer.green * 0.35f).coerceIn(0f, 1f),
+            blue = (classic.blue * 0.65f + primaryContainer.blue * 0.35f).coerceIn(0f, 1f),
+            alpha = classic.alpha
+        )
+    } else {
+        classic
+    }
+}
 
 /** Outline removed entirely (returns null). */
 @Composable
 fun glassStroke(): BorderStroke? = null
 
-/** Card fill. */
+/** Card fill tinted with expressive accent when fancy style is active. */
 @Composable
-fun cardFill(classic: Color = MaterialTheme.colorScheme.surfaceContainerHigh): Color = classic
+fun cardFill(classic: Color = MaterialTheme.colorScheme.surfaceContainerHigh): Color {
+    val primaryContainer = MaterialTheme.colorScheme.primaryContainer
+    return if (LocalFancyStyle.current) {
+        Color(
+            red = (classic.red * 0.7f + primaryContainer.red * 0.3f).coerceIn(0f, 1f),
+            green = (classic.green * 0.7f + primaryContainer.green * 0.3f).coerceIn(0f, 1f),
+            blue = (classic.blue * 0.7f + primaryContainer.blue * 0.3f).coerceIn(0f, 1f),
+            alpha = classic.alpha
+        )
+    } else {
+        classic
+    }
+}
 
 /** ListItem colors. */
 @Composable

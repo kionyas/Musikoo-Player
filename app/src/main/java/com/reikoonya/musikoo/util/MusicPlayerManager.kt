@@ -5,6 +5,8 @@ import com.reikoonya.musikoo.widget.MusicWidget
 import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
+import org.json.JSONArray
+import org.json.JSONObject
 import android.content.Intent
 import android.graphics.Bitmap
 import androidx.compose.runtime.getValue
@@ -52,6 +54,8 @@ object MusicPlayerManager {
 
     private const val MAX_ART_SIDE = 512
     private const val PREFS = "musikoo_prefs"
+    private const val QUEUE_KEY = "queue_state"
+    private var saveTicks = 0
     private val artworkCache = mutableMapOf<Long, ByteArray>()
 
     fun initPlayer(context: Context) {
@@ -130,6 +134,7 @@ object MusicPlayerManager {
                     }
                     exoPlayer?.let { player ->
                         if (player.isPlaying) {
+                            if (++saveTicks % 17 == 0) saveQueueState() // about every 5 seconds
                             currentPosition = player.currentPosition.toFloat()
                             if (player.duration > 0) {
                                 trackDuration = player.duration.toFloat()
@@ -222,6 +227,7 @@ object MusicPlayerManager {
                 trackDuration = if (song.duration > 0) song.duration.toFloat() else 100f
             }
 
+            saveQueueState()
             ensureServiceConnected()
         }
     }
@@ -267,9 +273,121 @@ object MusicPlayerManager {
         } else if (removedIndex < currentSongIndex) {
             currentSongIndex -= 1
         }
+        saveQueueState()
+    }
+
+    /** Reorders an item in the queue and updates ExoPlayer playlist. */
+    fun moveQueueItem(fromIndex: Int, toIndex: Int) {
+        if (fromIndex !in songs.indices || toIndex !in songs.indices || fromIndex == toIndex) return
+        val list = songs.toMutableList()
+        val item = list.removeAt(fromIndex)
+        list.add(toIndex, item)
+        songs = list
+
+        exoPlayer?.moveMediaItem(fromIndex, toIndex)
+
+        if (currentSongIndex == fromIndex) {
+            currentSongIndex = toIndex
+        } else if (fromIndex < currentSongIndex && toIndex >= currentSongIndex) {
+            currentSongIndex -= 1
+        } else if (fromIndex > currentSongIndex && toIndex <= currentSongIndex) {
+            currentSongIndex += 1
+        }
+
+        saveQueueState()
+    }
+
+    /** Removes an item at specific queue index. */
+    fun removeQueueItemAt(index: Int) {
+        if (index in songs.indices) {
+            removeSong(songs[index])
+        }
+    }
+
+    /** Plays the track at specific queue index immediately. */
+    fun playQueueIndex(index: Int) {
+        if (index !in songs.indices) return
+        currentSongIndex = index
+        exoPlayer?.apply {
+            seekTo(index, 0L)
+            prepare()
+            playWhenReady = true
+            play()
+            isPlayingState = true
+        }
+        val song = songs[index]
+        trackDuration = if (song.duration > 0) song.duration.toFloat() else 100f
+        currentPosition = 0f
+        saveQueueState()
+    }
+
+    /** Clears the entire current queue. */
+    fun clearQueue() {
+        songs = emptyList()
+        currentSongIndex = 0
+        currentPosition = 0f
+        isPlayingState = false
+        exoPlayer?.apply {
+            stop()
+            clearMediaItems()
+        }
+        saveQueueState()
+    }
+
+    /** Updates artwork on queue items after asynchronous album art scan finishes. */
+    fun updateArtForQueue(library: List<Song>) {
+        if (songs.isEmpty()) return
+        val byId = library.associateBy { it.id }
+        songs = songs.map { song -> byId[song.id] ?: song }
+    }
+
+    /** Saves the queue, the current track and the position, so playback can resume after an app restart. */
+    fun saveQueueState() {
+        val ctx = appContext ?: return
+        val player = exoPlayer ?: return
+        if (songs.isEmpty()) return
+        val json = JSONObject()
+            .put("ids", JSONArray(songs.map { it.id }))
+            .put("index", currentSongIndex)
+            .put("pos", player.currentPosition)
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putString(QUEUE_KEY, json.toString()).apply()
+    }
+
+    /**
+     * Restores the saved queue paused, once the library is loaded. Tracks that no longer exist are skipped.
+     */
+    fun restoreQueue(library: List<Song>) {
+        val ctx = appContext ?: return
+        val player = exoPlayer ?: return
+        if (player.mediaItemCount > 0) return
+        val raw = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(QUEUE_KEY, null) ?: return
+        try {
+            val json = JSONObject(raw)
+            val ids = json.getJSONArray("ids")
+            val savedIndex = json.optInt("index", 0)
+            val currentId = if (savedIndex in 0 until ids.length()) ids.getLong(savedIndex) else -1L
+            val byId = library.associateBy { it.id }
+            val queue = (0 until ids.length()).mapNotNull { byId[ids.getLong(it)] }
+            if (queue.isEmpty()) return
+            val index = queue.indexOfFirst { it.id == currentId }.coerceAtLeast(0)
+            val position = json.optLong("pos", 0L)
+
+            songs = queue
+            currentSongIndex = index
+            player.setMediaItems(queue.map { buildMediaItem(it) }, index, position)
+            player.prepare()
+            player.playWhenReady = false
+            isPlayingState = false
+            trackDuration = queue[index].duration.takeIf { it > 0 }?.toFloat() ?: 100f
+            currentPosition = position.toFloat()
+        } catch (_: Exception) {
+            // a broken or old saved state is simply ignored
+        }
     }
 
     fun togglePlayPause() {
+        saveQueueState()
         exoPlayer?.let { player ->
             isPlayingState = if (player.isPlaying) {
                 player.pause()
@@ -284,18 +402,21 @@ object MusicPlayerManager {
     fun seekTo(position: Long) {
         exoPlayer?.seekTo(position)
         currentPosition = position.toFloat()
+        saveQueueState()
     }
 
     fun rewind10() {
         exoPlayer?.let { exo ->
             exo.seekTo((exo.currentPosition - 10000).coerceAtLeast(0L))
         }
+        saveQueueState()
     }
 
     fun forward10() {
         exoPlayer?.let { exo ->
             exo.seekTo((exo.currentPosition + 10000).coerceAtMost(exo.duration.coerceAtLeast(0L)))
         }
+        saveQueueState()
     }
 
     fun skipNext() {
@@ -306,6 +427,7 @@ object MusicPlayerManager {
                 player.seekTo(0, 0L)
             }
         }
+        saveQueueState()
     }
 
     fun skipPrevious() {
@@ -317,6 +439,7 @@ object MusicPlayerManager {
                 player.seekTo(lastIndex, 0L)
             }
         }
+        saveQueueState()
     }
 
     // ---------- shuffle and repeat ----------

@@ -1,5 +1,6 @@
 package com.reikoonya.musikoo.ui.components
 
+import androidx.compose.material.icons.rounded.*
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.widget.Toast
@@ -120,7 +121,7 @@ fun PlaylistArt(
             else -> {
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                     Icon(
-                        imageVector = Icons.Default.QueueMusic,
+                        imageVector = Icons.Rounded.QueueMusic,
                         contentDescription = null,
                         modifier = Modifier.size(36.dp),
                         tint = MaterialTheme.colorScheme.primary
@@ -168,7 +169,7 @@ fun AddToPlaylistDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
+                    Icon(Icons.Rounded.Add, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.create_playlist), fontWeight = FontWeight.Bold)
                 }
@@ -339,7 +340,7 @@ fun EditPlaylistDialog(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(20.dp)
                     ) {
-                        Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Rounded.Image, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(stringResource(R.string.replace_cover))
                     }
@@ -405,7 +406,7 @@ fun EditPlaylistDialog(
                                     }
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Close,
+                                        imageVector = Icons.Rounded.Close,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.error
                                     )

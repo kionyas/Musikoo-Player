@@ -1,5 +1,6 @@
 package com.reikoonya.musikoo.ui
 
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -76,7 +77,7 @@ fun SettingsScreen(
             // 1. Playback
             SettingsGroupHeader(title = stringResource(R.string.playback)) {
                 SettingsCardItem(
-                    icon = Icons.Default.Notifications,
+                    icon = Icons.Rounded.Notifications,
                     title = stringResource(R.string.player_notifications),
                     description = stringResource(R.string.player_notifications_desc),
                     onClick = onRequestNotificationPermission
@@ -86,7 +87,7 @@ fun SettingsScreen(
             // 2. Library
             SettingsGroupHeader(title = stringResource(R.string.library)) {
                 SettingsCardItem(
-                    icon = Icons.Default.Refresh,
+                    icon = Icons.Rounded.Refresh,
                     title = stringResource(R.string.rescan_library),
                     description = stringResource(R.string.rescan_library_desc),
                     onClick = onRescanLibrary
@@ -97,14 +98,14 @@ fun SettingsScreen(
             SettingsGroupHeader(title = "Last.fm") {
                 if (lastFmUser == null) {
                     SettingsCardItem(
-                        icon = Icons.Default.Link,
+                        icon = Icons.Rounded.Link,
                         title = "Connect Last.fm",
                         description = "Send your listening history to your Last.fm account",
                         onClick = onLastFmConnect
                     )
                 } else {
                     SettingsCardItem(
-                        icon = Icons.Default.Link,
+                        icon = Icons.Rounded.Link,
                         title = "Account: $lastFmUser",
                         description = "Tap to disconnect Last.fm",
                         onClick = onLastFmDisconnect
@@ -116,7 +117,7 @@ fun SettingsScreen(
             SettingsGroupHeader(title = stringResource(R.string.appearance)) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     SettingsCardItem(
-                        icon = Icons.Default.Palette,
+                        icon = Icons.Rounded.Palette,
                         title = stringResource(R.string.color_theme),
                         description = "Current theme: ${
                             when (colorThemeMode) {
@@ -149,7 +150,7 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     SettingsCardItem(
-                        icon = Icons.Default.AutoAwesome,
+                        icon = Icons.Rounded.AutoAwesome,
                         title = stringResource(R.string.interface_style),
                         description = "Current style: ${
                             when (uiStyle) {
@@ -175,7 +176,7 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     SettingsCardItem(
-                        icon = Icons.Default.AppShortcut,
+                        icon = Icons.Rounded.AppShortcut,
                         title = stringResource(R.string.app_icon),
                         description = "Current icon: ${
                             when (appIconMode) {
@@ -234,7 +235,7 @@ fun SettingsScreen(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
+                        imageVector = Icons.Rounded.KeyboardArrowDown,
                         contentDescription = stringResource(R.string.back),
                         tint = MaterialTheme.colorScheme.onSurface
                     )

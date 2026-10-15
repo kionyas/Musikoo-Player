@@ -1,8 +1,12 @@
 package com.reikoonya.musikoo.ui
 
+import androidx.compose.material.icons.rounded.*
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -14,8 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,7 +33,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reikoonya.musikoo.R
+import com.reikoonya.musikoo.ui.components.ActionsDialog
 import com.reikoonya.musikoo.ui.components.ArtBackdrop
+import com.reikoonya.musikoo.ui.components.MenuAction
 import com.reikoonya.musikoo.ui.components.TopFadeScrim
 import com.reikoonya.musikoo.ui.components.bounceClickable
 import com.reikoonya.musikoo.ui.components.cardFill
@@ -38,6 +43,11 @@ import com.reikoonya.musikoo.ui.components.glassFill
 import com.reikoonya.musikoo.ui.components.glassStroke
 import com.reikoonya.musikoo.ui.components.nowPlayingArt
 import com.reikoonya.musikoo.ui.theme.LocalFancyStyle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
 
 private fun loadChangelog(context: Context): String {
     return try {
@@ -57,13 +67,85 @@ private fun loadBannerBitmap(context: Context): Bitmap? {
     }
 }
 
+private fun loadCustomBanner(context: Context): Bitmap? {
+    val customFile = File(context.filesDir, "custom_banner.png")
+    if (customFile.exists()) {
+        try {
+            BitmapFactory.decodeFile(customFile.absolutePath)?.let { return it }
+        } catch (_: Exception) {}
+    }
+    return loadBannerBitmap(context)
+}
+
+private fun saveCustomBanner(context: Context, uri: Uri): Bitmap? {
+    return try {
+        val bitmap = context.contentResolver.openInputStream(uri)?.use { stream ->
+            BitmapFactory.decodeStream(stream)
+        } ?: return null
+        val customFile = File(context.filesDir, "custom_banner.png")
+        FileOutputStream(customFile).use { out ->
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+        }
+        bitmap
+    } catch (_: Exception) {
+        null
+    }
+}
+
 @Composable
 fun AboutScreen(
     onBackClick: () -> Unit,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val changelogText = remember { loadChangelog(context) }
-    val bannerBitmap = remember { loadBannerBitmap(context) }
+    var bannerBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var showBannerOptions by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            bannerBitmap = loadCustomBanner(context)
+        }
+    }
+
+    val pickBanner = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            scope.launch(Dispatchers.IO) {
+                val saved = saveCustomBanner(context, uri)
+                if (saved != null) {
+                    withContext(Dispatchers.Main) {
+                        bannerBitmap = saved
+                    }
+                }
+            }
+        }
+    }
+
+    if (showBannerOptions) {
+        ActionsDialog(
+            title = "Banner options",
+            actions = listOf(
+                MenuAction(Icons.Rounded.PhotoLibrary, "Choose custom") {
+                    showBannerOptions = false
+                    pickBanner.launch("image/*")
+                },
+                MenuAction(Icons.Rounded.Restore, "Revert to default") {
+                    showBannerOptions = false
+                    scope.launch(Dispatchers.IO) {
+                        val file = File(context.filesDir, "custom_banner.png")
+                        if (file.exists()) file.delete()
+                        val defaultBitmap = loadBannerBitmap(context)
+                        withContext(Dispatchers.Main) {
+                            bannerBitmap = defaultBitmap
+                        }
+                    }
+                }
+            ),
+            onDismiss = { showBannerOptions = false }
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -89,11 +171,15 @@ fun AboutScreen(
         ) {
             Spacer(modifier = Modifier.height(64.dp))
 
-            // Rounded Banner Card
+            // Rounded Banner Card (touchbox to open banner options)
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(170.dp),
+                    .height(170.dp)
+                    .clip(RoundedCornerShape(32.dp))
+                    .bounceClickable {
+                        showBannerOptions = true
+                    },
                 shape = RoundedCornerShape(32.dp),
                 colors = CardDefaults.cardColors(containerColor = cardFill()),
                 border = glassStroke(),
@@ -103,9 +189,10 @@ fun AboutScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (bannerBitmap != null) {
+                    val currentBanner = bannerBitmap
+                    if (currentBanner != null) {
                         Image(
-                            bitmap = bannerBitmap.asImageBitmap(),
+                            bitmap = currentBanner.asImageBitmap(),
                             contentDescription = "Banner",
                             modifier = Modifier
                                 .fillMaxSize()
@@ -120,7 +207,7 @@ fun AboutScreen(
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = Icons.Default.MusicNote,
+                                    imageVector = Icons.Rounded.MusicNote,
                                     contentDescription = null,
                                     modifier = Modifier.size(32.dp),
                                     tint = MaterialTheme.colorScheme.primary
@@ -158,7 +245,7 @@ fun AboutScreen(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = stringResource(R.string.version, "1.1.1"),
+                        text = stringResource(R.string.version, "1.3.0"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -242,7 +329,7 @@ fun AboutScreen(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
+                        imageVector = Icons.Rounded.KeyboardArrowDown,
                         contentDescription = stringResource(R.string.back),
                         tint = MaterialTheme.colorScheme.onSurface
                     )

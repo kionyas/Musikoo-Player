@@ -153,10 +153,10 @@ object TagWriter {
         changes: Map<TagField, String>,
         cover: CoverChange,
     ): WriteResult = withContext(Dispatchers.IO) {
-        val ext = extensionFor(song)
-            ?: return@withContext WriteResult.Failed("file format not supported")
+        val declared = extensionFor(song)
         val resolver = context.contentResolver
-        val temp = File(context.cacheDir, "tagwrite_${song.id}.$ext")
+        val temp = File(context.cacheDir, "tagwrite_${song.id}.tmp")
+        var work: File? = null
 
         try {
             // 1. copy the file
@@ -164,8 +164,18 @@ object TagWriter {
                 ?: return@withContext WriteResult.Failed("could not open the file")
             input.use { src -> temp.outputStream().use { dst -> src.copyTo(dst) } }
 
+            // The name or MIME type can be missing or wrong, so trust the file's content first
+            val ext = sniffExtension(temp) ?: declared
+                ?: return@withContext WriteResult.Failed("unsupported file format")
+            if (ext !in supportedExtensions) {
+                return@withContext WriteResult.Failed("editing .$ext files is not supported")
+            }
+            val file = File(context.cacheDir, "tagwrite_${song.id}.$ext")
+            temp.renameTo(file)
+            work = file
+
             // 2. edit the tags in the copy
-            val audioFile = AudioFileIO.read(temp)
+            val audioFile = AudioFileIO.read(file)
             val tag = audioFile.tagOrCreateAndSetDefault
             applyChanges(tag, changes, cover)
             audioFile.commit()
@@ -174,7 +184,7 @@ object TagWriter {
             try {
                 val out = resolver.openOutputStream(song.uri, "wt")
                     ?: return@withContext WriteResult.Failed("no write access")
-                out.use { dst -> temp.inputStream().use { src -> src.copyTo(dst) } }
+                out.use { dst -> file.inputStream().use { src -> src.copyTo(dst) } }
             } catch (e: SecurityException) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && e is RecoverableSecurityException) {
                     return@withContext WriteResult.NeedsPermission(e.userAction.actionIntent.intentSender)
@@ -192,7 +202,7 @@ object TagWriter {
                 )
             }
 
-            WriteResult.Updated(updatedSong(song, changes, cover, temp.length()))
+            WriteResult.Updated(updatedSong(song, changes, cover, file.length()))
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
@@ -200,6 +210,7 @@ object TagWriter {
             WriteResult.Failed(e.message ?: e.javaClass.simpleName)
         } finally {
             temp.delete()
+            work?.delete()
         }
     }
 
@@ -273,6 +284,28 @@ object TagWriter {
     }
 
     /** jaudiotagger needs the extension to pick the format. Take it from the path, otherwise from the MIME type. */
+    /** Identifies the container from its first bytes. Returns null if the format is not recognised. */
+    private fun sniffExtension(file: File): String? {
+        val head = ByteArray(16)
+        val read = file.inputStream().use { it.read(head) }
+        if (read < 4) return null
+        fun at(offset: Int, text: String): Boolean =
+            text.indices.all { offset + it < read && head[offset + it] == text[it].code.toByte() }
+        val b0 = head[0].toInt() and 0xFF
+        val b1 = head[1].toInt() and 0xFF
+        return when {
+            at(0, "ID3") -> "mp3"
+            b0 == 0xFF && (b1 and 0xE0) == 0xE0 -> "mp3"
+            at(0, "fLaC") -> "flac"
+            at(0, "OggS") -> "ogg"
+            at(0, "RIFF") && at(8, "WAVE") -> "wav"
+            at(0, "FORM") -> "aiff"
+            at(4, "ftyp") -> "m4a"
+            b0 == 0x30 && b1 == 0x26 && (head[2].toInt() and 0xFF) == 0xB2 && (head[3].toInt() and 0xFF) == 0x75 -> "wma"
+            else -> null
+        }
+    }
+
     private fun extensionFor(song: Song): String? {
         val fromPath = song.dataPath.substringAfterLast('.', "").lowercase()
         if (fromPath in supportedExtensions) return fromPath

@@ -1,5 +1,6 @@
 package com.reikoonya.musikoo
 
+import androidx.compose.material.icons.rounded.*
 import android.content.Intent
 import android.database.ContentObserver
 import android.net.Uri
@@ -70,6 +71,7 @@ sealed class Screen {
     data class PlaylistDetail(val playlistId: String) : Screen()
     object Settings : Screen()
     object About : Screen()
+    object Queue : Screen()
     data class Player(val songIndex: Int) : Screen()
 }
 
@@ -133,9 +135,14 @@ class MainActivity : ComponentActivity() {
                         if (libraryRefresh > 0) delay(400) // avoid rescanning on every back-to-back change
                         val fast = withContext(Dispatchers.IO) { scanLibrary(context) }
                         songs = fast
+                        MusicPlayerManager.initPlayer(context)
+                        MusicPlayerManager.restoreQueue(fast)
                         withContext(Dispatchers.IO) {
                             attachAlbumArt(context, fast) { withArt ->
-                                withContext(Dispatchers.Main) { songs = withArt }
+                                withContext(Dispatchers.Main) {
+                                    songs = withArt
+                                    MusicPlayerManager.updateArtForQueue(withArt)
+                                }
                             }
                         }
                     }
@@ -171,6 +178,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
+                    val mainSearch = remember { MainSearchState() }
                     val backStack = remember { mutableStateListOf<Screen>(Screen.MainMenu) }
                     val currentScreen = backStack.lastOrNull() ?: Screen.MainMenu
 
@@ -208,7 +216,7 @@ class MainActivity : ComponentActivity() {
                             shape = RoundedCornerShape(32.dp),
                             icon = {
                                 Icon(
-                                    imageVector = Icons.Default.Notifications,
+                                    imageVector = Icons.Rounded.Notifications,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary
                                 )
@@ -255,7 +263,7 @@ class MainActivity : ComponentActivity() {
                         transitionSpec = {
                             val isBack = backStack.indexOf(targetState) < backStack.indexOf(initialState)
                             val isTopDropSheet = { s: Screen -> s is Screen.Settings || s is Screen.About || s is Screen.Albums || s is Screen.AlbumDetail }
-                            val isBottomSlideSheet = { s: Screen -> s is Screen.Player || s is Screen.Artists || s is Screen.ArtistDetail || s is Screen.Songs || s is Screen.PlaylistDetail }
+                            val isBottomSlideSheet = { s: Screen -> s is Screen.Player || s is Screen.Queue || s is Screen.Artists || s is Screen.ArtistDetail || s is Screen.Songs || s is Screen.PlaylistDetail }
                             when {
                                 (initialState is Screen.MainMenu && isBottomSlideSheet(targetState)) -> {
                                     (slideInVertically { height -> height } + fadeIn()) togetherWith
@@ -298,9 +306,16 @@ class MainActivity : ComponentActivity() {
                         when (screen) {
                             is Screen.MainMenu -> {
                                 MainMenuScreen(
+                                    search = mainSearch,
                                     songs = songs,
                                     onSongClick = { index ->
+                                        MusicPlayerManager.playSong(songs, index)
                                         navigateTo(Screen.Player(index))
+                                    },
+                                    onOpenPlayer = {
+                                        if (MusicPlayerManager.currentSongIndex in songs.indices) {
+                                            navigateTo(Screen.Player(MusicPlayerManager.currentSongIndex))
+                                        }
                                     },
                                     onAlbumClick = { albumName ->
                                         navigateTo(Screen.AlbumDetail(albumName))
@@ -349,6 +364,7 @@ class MainActivity : ComponentActivity() {
                                         MusicPlayerManager.playSong(albumSongs, localIndex)
                                         navigateTo(Screen.Player(localIndex))
                                     },
+                                    onQueueClick = { navigateTo(Screen.Queue) },
                                 ) { popBackStack() }
                             }
                             is Screen.Artists -> {
@@ -365,6 +381,7 @@ class MainActivity : ComponentActivity() {
                                         MusicPlayerManager.playSong(artistSongs, localIndex)
                                         navigateTo(Screen.Player(localIndex))
                                     },
+                                    onQueueClick = { navigateTo(Screen.Queue) },
                                 ) { popBackStack() }
                             }
                             is Screen.PlaylistDetail -> {
@@ -375,6 +392,7 @@ class MainActivity : ComponentActivity() {
                                         MusicPlayerManager.playSong(playlistSongs, localIndex)
                                         navigateTo(Screen.Player(localIndex))
                                     },
+                                    onQueueClick = { navigateTo(Screen.Queue) },
                                     onBackClick = { popBackStack() },
                                     onPlaylistDeleted = { popBackStack() }
                                 )
@@ -383,6 +401,7 @@ class MainActivity : ComponentActivity() {
                                 PlayerScreen(
                                     songs = songs,
                                     initialSongIndex = screen.songIndex,
+                                    onQueueClick = { navigateTo(Screen.Queue) },
                                     onSongDeleted = { deleted ->
                                         songs = songs.filter { it.id != deleted.id }
                                     },
@@ -392,6 +411,11 @@ class MainActivity : ComponentActivity() {
                                 ) {
                                     backStack.removeAll { it !is Screen.MainMenu }
                                 }
+                            }
+                            is Screen.Queue -> {
+                                QueueScreen(
+                                    onBackClick = { popBackStack() }
+                                )
                             }
                             is Screen.Settings -> {
                                 SettingsScreen(
@@ -461,6 +485,16 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         // permission may have been granted in system settings while the app was in the background
         audioGranted = hasAudioPermission()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        MusicPlayerManager.saveQueueState()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        MusicPlayerManager.saveQueueState()
     }
 
     private fun hasAudioPermission(): Boolean {

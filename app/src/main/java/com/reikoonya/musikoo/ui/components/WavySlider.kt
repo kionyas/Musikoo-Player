@@ -44,7 +44,7 @@ private fun rememberWaveAmplitude(isPlaying: Boolean): State<Float> =
     animateFloatAsState(
         targetValue = if (isPlaying) 1f else 0f,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
+            dampingRatio = Spring.DampingRatioLowBouncy,
             stiffness = Spring.StiffnessLow
         ),
         label = "waveAmplitude"

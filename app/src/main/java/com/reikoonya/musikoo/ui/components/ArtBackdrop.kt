@@ -52,7 +52,7 @@ fun ArtBackdrop(
 
     val entranceScale by animateFloatAsState(
         targetValue = if (visible) 1.30f else 0.85f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow),
         label = "backdropScale"
     )
     val entranceAlpha by animateFloatAsState(

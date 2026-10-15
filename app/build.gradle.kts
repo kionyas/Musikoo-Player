@@ -10,18 +10,16 @@ val localProps = Properties().apply {
     if (file.exists()) load(file.inputStream())
 }
 
-
-
 android {
     namespace = "com.reikoonya.musikoo"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.reikoonya.musikoo"
-        minSdk = 32
-        targetSdk = 35
-        versionCode = 3
-        versionName = "1.1.1"
+        minSdk = 31
+        targetSdk = 37
+        versionCode = 7
+        versionName = "1.3.0"
 
         buildConfigField("String", "LASTFM_API_KEY", "\"${localProps.getProperty("API_KEY", "")}\"")
         buildConfigField("String", "LASTFM_API_SECRET", "\"${localProps.getProperty("API_SECRET", "")}\"")
@@ -69,16 +67,16 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // Material Design 3 (компоненты интерфейса)
-    implementation("com.google.android.material:material:1.12.0")
+    implementation("com.google.android.material:material:1.14.0")
 
     // Media3 ExoPlayer (для воспроизведения музыки)
-    implementation("androidx.media3:media3-exoplayer:1.4.1")
-    implementation("androidx.media3:media3-ui:1.4.1")
-    implementation("androidx.media3:media3-session:1.4.1")
+    implementation("androidx.media3:media3-exoplayer:1.11.1")
+    implementation("androidx.media3:media3-ui:1.11.1")
+    implementation("androidx.media3:media3-session:1.11.1")
 
     // Стандартные библиотеки Android
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.appcompat:appcompat:1.8.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.2.2")
 
     // JAudioTagger для чтения и записи ID3 тегов в аудиофайлы
     implementation("net.jthink:jaudiotagger:3.0.1")

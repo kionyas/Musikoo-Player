@@ -1,5 +1,6 @@
 package com.reikoonya.musikoo.ui
 
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -19,11 +21,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.reikoonya.musikoo.R
+import com.reikoonya.musikoo.data.PlaylistManager
 import com.reikoonya.musikoo.model.Song
 import com.reikoonya.musikoo.ui.components.ActionsDialog
 import com.reikoonya.musikoo.ui.components.AddToPlaylistDialog
@@ -36,6 +40,7 @@ import com.reikoonya.musikoo.ui.components.cardFill
 import com.reikoonya.musikoo.ui.components.glassFill
 import com.reikoonya.musikoo.ui.components.glassStroke
 import com.reikoonya.musikoo.ui.components.nowPlayingArt
+import com.reikoonya.musikoo.util.ShareUtils
 import com.reikoonya.musikoo.util.formatTime
 import com.reikoonya.musikoo.util.normalizeArtistName
 
@@ -44,8 +49,10 @@ fun ArtistDetailScreen(
     artistName: String,
     songs: List<Song>,
     onSongClick: (List<Song>, Int) -> Unit,
+    onQueueClick: () -> Unit = {},
     onBackClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val artistSongs = remember(songs, artistName) {
         songs.filter { normalizeArtistName(it.artist).lowercase() == normalizeArtistName(artistName).lowercase() }
             .sortedBy { it.title.lowercase() }
@@ -55,16 +62,33 @@ fun ArtistDetailScreen(
     var actionSong by remember { mutableStateOf<Song?>(null) }
     var editSongs by remember { mutableStateOf<List<Song>?>(null) }
     var addToPlaylistSongIds by remember { mutableStateOf<List<Long>?>(null) }
+    var selectedSongIds by remember { mutableStateOf(emptySet<Long>()) }
+    val isSelecting = selectedSongIds.isNotEmpty()
+    val selectedSongs = remember(selectedSongIds, artistSongs) {
+        artistSongs.filter { it.id in selectedSongIds }
+    }
 
     actionSong?.let { song ->
+        val isFav = PlaylistManager.isFavorite(context, song.id)
         ActionsDialog(
             title = song.title,
             actions = listOf(
-                MenuAction(Icons.Default.PlaylistAdd, stringResource(R.string.add_to_playlist)) {
+                MenuAction(Icons.Rounded.PlaylistAdd, stringResource(R.string.add_to_playlist)) {
                     addToPlaylistSongIds = listOf(song.id)
                     actionSong = null
                 },
-                MenuAction(Icons.Default.Edit, stringResource(R.string.edit_tags)) {
+                MenuAction(Icons.Rounded.Share, stringResource(R.string.share)) {
+                    ShareUtils.shareSongs(context, listOf(song))
+                    actionSong = null
+                },
+                MenuAction(
+                    icon = if (isFav) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                    label = if (isFav) stringResource(R.string.remove_from_favorites) else stringResource(R.string.add_to_favorites)
+                ) {
+                    PlaylistManager.toggleFavorite(context, song.id)
+                    actionSong = null
+                },
+                MenuAction(Icons.Rounded.Edit, stringResource(R.string.edit_tags)) {
                     editSongs = listOf(song)
                     actionSong = null
                 }
@@ -138,7 +162,7 @@ fun ArtistDetailScreen(
                             } else {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
-                                        imageVector = Icons.Default.Person,
+                                        imageVector = Icons.Rounded.Person,
                                         contentDescription = null,
                                         modifier = Modifier.size(40.dp),
                                         tint = MaterialTheme.colorScheme.primary
@@ -168,19 +192,26 @@ fun ArtistDetailScreen(
 
             itemsIndexed(artistSongs) { index, _ ->
                 val song = artistSongs[index]
+                val isSelected = song.id in selectedSongIds
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(26.dp))
                         .bounceCombinedClickable(
-                            onLongClick = { actionSong = song }
+                            onLongClick = {
+                                selectedSongIds = if (isSelected) selectedSongIds - song.id else selectedSongIds + song.id
+                            }
                         ) {
-                            onSongClick(artistSongs, index)
+                            if (isSelecting) {
+                                selectedSongIds = if (isSelected) selectedSongIds - song.id else selectedSongIds + song.id
+                            } else {
+                                onSongClick(artistSongs, index)
+                            }
                         },
                     shape = RoundedCornerShape(26.dp),
-                    color = cardFill(),
+                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else cardFill(),
                     border = glassStroke(),
-                    tonalElevation = 1.dp
+                    tonalElevation = if (isSelected) 4.dp else 1.dp
                 ) {
                     Row(
                         modifier = Modifier
@@ -193,9 +224,17 @@ fun ArtistDetailScreen(
                             modifier = Modifier
                                 .size(52.dp)
                                 .clip(RoundedCornerShape(20.dp)),
-                            color = MaterialTheme.colorScheme.primaryContainer
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer
                         ) {
-                            if (song.albumArt != null) {
+                            if (isSelected) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Check,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                }
+                            } else if (song.albumArt != null) {
                                 Image(
                                     bitmap = song.albumArt.asImageBitmap(),
                                     contentDescription = null,
@@ -205,7 +244,7 @@ fun ArtistDetailScreen(
                             } else {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
-                                        imageVector = Icons.Default.MusicNote,
+                                        imageVector = Icons.Rounded.MusicNote,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary
                                     )
@@ -258,7 +297,13 @@ fun ArtistDetailScreen(
             Surface(
                 modifier = Modifier
                     .size(44.dp)
-                    .bounceClickable { onBackClick() },
+                    .bounceClickable {
+                        if (isSelecting) {
+                            selectedSongIds = emptySet()
+                        } else {
+                            onBackClick()
+                        }
+                    },
                 shape = CircleShape,
                 color = glassFill(),
                 border = glassStroke(),
@@ -266,8 +311,8 @@ fun ArtistDetailScreen(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = stringResource(R.string.back),
+                        imageVector = if (isSelecting) Icons.Rounded.Close else Icons.Rounded.KeyboardArrowDown,
+                        contentDescription = if (isSelecting) "Close" else stringResource(R.string.back),
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -278,30 +323,107 @@ fun ArtistDetailScreen(
                 color = glassFill(),
                 border = glassStroke()
             ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(28.dp)
-                            .height(3.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = artistName.uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                if (isSelecting) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = "${selectedSongIds.size}",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        IconButton(
+                            onClick = {
+                                selectedSongIds = if (selectedSongIds.size == artistSongs.size) emptySet() else artistSongs.map { it.id }.toSet()
+                            },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.SelectAll,
+                                contentDescription = "Select All",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = { ShareUtils.shareSongs(context, selectedSongs) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Share,
+                                contentDescription = "Share",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = { addToPlaylistSongIds = selectedSongIds.toList() },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.PlaylistAdd,
+                                contentDescription = "Add to Playlist",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = { editSongs = selectedSongs },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Edit,
+                                contentDescription = "Edit Tags",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(28.dp)
+                                .height(3.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = artistName.uppercase(),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.size(44.dp))
+            Surface(
+                modifier = Modifier
+                    .size(44.dp)
+                    .bounceClickable { onQueueClick() },
+                shape = CircleShape,
+                color = glassFill(),
+                border = glassStroke(),
+                tonalElevation = 2.dp
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                        contentDescription = stringResource(R.string.queue),
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
         }
     }
 }

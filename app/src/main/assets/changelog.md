@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.3.0
+
+### Compatibility
+MIN SDK is 32 (Android 12) and target SDK is 37(Android 17).
+
+### QOL & Fixes
+- Perfomance fixing.
+- Accessibility of buttons.
+- Timer in Player, Miniplayer.
+- Fixed monet icon.
+- Overall better :cry:
+
+### New
+- Queue & Queue editing.
+- Smart and compact Search Bar.
+- Design improvements in player, stats, edit tags.
+- Edit banner in "About".
+- Share, multi-selection
+
+## More in 1.3.x updates..........
+
+
 ## 1.1.1
 
 ### Fixes

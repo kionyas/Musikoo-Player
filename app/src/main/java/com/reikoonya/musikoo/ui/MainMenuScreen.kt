@@ -1,12 +1,57 @@
 package com.reikoonya.musikoo.ui
 
+import androidx.compose.material.icons.rounded.*
+import kotlinx.coroutines.delay
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.SizeTransform
+import android.graphics.Bitmap
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Person
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
+import com.reikoonya.musikoo.util.ShareUtils
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -54,13 +99,27 @@ import com.reikoonya.musikoo.ui.components.TopFadeScrim
 import com.reikoonya.musikoo.ui.components.WavyProgress
 import com.reikoonya.musikoo.ui.components.bounceClickable
 import com.reikoonya.musikoo.ui.components.bounceCombinedClickable
+import com.reikoonya.musikoo.ui.components.glassFill
 import com.reikoonya.musikoo.ui.components.glassStroke
+import com.reikoonya.musikoo.ui.components.cardFill
 import com.reikoonya.musikoo.util.MusicPlayerManager
+import com.reikoonya.musikoo.util.formatTime
+
+/** Search UI state, kept by MainActivity so it survives switching between tabs. */
+class MainSearchState {
+    val open = mutableStateOf(false)
+    val query = mutableStateOf("")
+    val pillHidden = mutableStateOf(false)
+    val mode = mutableStateOf(SearchMode.SONG)
+    val genre = mutableStateOf<String?>(null)
+}
 
 @Composable
 fun MainMenuScreen(
+    search: MainSearchState,
     songs: List<Song>,
     onSongClick: (Int) -> Unit,
+    onOpenPlayer: () -> Unit = { onSongClick(MusicPlayerManager.currentSongIndex) },
     onAlbumClick: (String) -> Unit,
     onPlaylistClick: (String) -> Unit = {},
     onSettingsClick: () -> Unit,
@@ -78,6 +137,26 @@ fun MainMenuScreen(
     var pinnedAlbumNames by remember { mutableStateOf(PlaylistManager.getPinnedAlbums(context)) }
     var isTipDismissed by remember { mutableStateOf(PlaylistManager.isTipDismissed(context)) }
 
+    var searchOpen by search.open
+    var searchQuery by search.query
+    var isSearchPillHidden by search.pillHidden
+    var searchMode by search.mode
+    var searchGenre by search.genre
+    val searchGenres = remember(songs) { genresOf(songs) }
+
+    // Back gesture closes the search instead of leaving the screen
+    BackHandler(enabled = searchOpen) {
+        searchOpen = false
+    }
+
+    // Clear the text only after the panel has finished collapsing, so it does not vanish before the panel
+    LaunchedEffect(searchOpen) {
+        if (!searchOpen && searchQuery.isNotEmpty()) {
+            delay(450)
+            searchQuery = ""
+        }
+    }
+
     var isPinnedCollapsed by remember { mutableStateOf(PlaylistManager.isSectionCollapsed(context, "pinned")) }
     var isPlaylistsCollapsed by remember { mutableStateOf(PlaylistManager.isSectionCollapsed(context, "playlists")) }
     var isAlbumsCollapsed by remember { mutableStateOf(PlaylistManager.isSectionCollapsed(context, "albums")) }
@@ -91,11 +170,6 @@ fun MainMenuScreen(
         targetValue = dragOffsetX,
         animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium),
         label = "animOffsetX"
-    )
-    val animOffsetY by animateFloatAsState(
-        targetValue = dragOffsetY,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium),
-        label = "animOffsetY"
     )
 
     val thresholdPx = remember(density) { with(density) { 100.dp.toPx() } }
@@ -121,14 +195,18 @@ fun MainMenuScreen(
             title = name,
             actions = listOf(
                 MenuAction(
-                    icon = Icons.Default.PushPin,
+                    icon = Icons.Rounded.PushPin,
                     label = if (isPinned) stringResource(R.string.unpin_from_top) else stringResource(R.string.pin_to_top)
                 ) {
                     PlaylistManager.togglePinAlbum(context, name)
                     pinnedAlbumNames = PlaylistManager.getPinnedAlbums(context)
                     actionsAlbum = null
                 },
-                MenuAction(Icons.Default.Edit, stringResource(R.string.edit_tags)) {
+                MenuAction(Icons.Rounded.Share, stringResource(R.string.share)) {
+                    albums[name]?.let { songList -> ShareUtils.shareSongs(context, songList, name) }
+                    actionsAlbum = null
+                },
+                MenuAction(Icons.Rounded.Edit, stringResource(R.string.edit_tags)) {
                     editSongs = albums[name].orEmpty()
                     actionsAlbum = null
                 }
@@ -143,21 +221,27 @@ fun MainMenuScreen(
             title = playlist.name,
             actions = listOfNotNull(
                 MenuAction(
-                    icon = Icons.Default.PushPin,
+                    icon = Icons.Rounded.PushPin,
                     label = if (playlist.isPinned) stringResource(R.string.unpin_from_top) else stringResource(R.string.pin_to_top)
                 ) {
                     PlaylistManager.togglePinPlaylist(context, playlist.id)
                     playlists = PlaylistManager.getPlaylists(context)
                     actionsPlaylist = null
                 },
+                MenuAction(Icons.Rounded.Share, stringResource(R.string.share)) {
+                    val songMap = songs.associateBy { it.id }
+                    val songsToShare = playlist.songIds.mapNotNull { songMap[it] }
+                    ShareUtils.shareSongs(context, songsToShare, playlist.name)
+                    actionsPlaylist = null
+                },
                 if (!isFav) {
-                    MenuAction(Icons.Default.Edit, stringResource(R.string.edit_playlist)) {
+                    MenuAction(Icons.Rounded.Edit, stringResource(R.string.edit_playlist)) {
                         selectedPlaylistForEdit = playlist
                         actionsPlaylist = null
                     }
                 } else null,
                 if (!isFav) {
-                    MenuAction(Icons.Default.Delete, stringResource(R.string.delete_playlist)) {
+                    MenuAction(Icons.Rounded.Delete, stringResource(R.string.delete_playlist)) {
                         PlaylistManager.deletePlaylist(context, playlist.id)
                         playlists = PlaylistManager.getPlaylists(context)
                         actionsPlaylist = null
@@ -213,7 +297,7 @@ fun MainMenuScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 top = 92.dp,
-                bottom = if (currentSong != null && !isMiniPlayerHidden) 195.dp else 105.dp,
+                bottom = if (currentSong != null && !isMiniPlayerHidden) 220.dp else 140.dp,
                 start = 16.dp,
                 end = 16.dp
             ),
@@ -244,7 +328,7 @@ fun MainMenuScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.TipsAndUpdates,
+                                    imageVector = Icons.Rounded.TipsAndUpdates,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary
                                 )
@@ -269,7 +353,7 @@ fun MainMenuScreen(
                                 }
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Close,
+                                    imageVector = Icons.Rounded.Close,
                                     contentDescription = stringResource(R.string.cancel)
                                 )
                             }
@@ -298,7 +382,7 @@ fun MainMenuScreen(
                             modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
                         )
                         Icon(
-                            imageVector = if (isPinnedCollapsed) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                            imageVector = if (isPinnedCollapsed) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -308,7 +392,7 @@ fun MainMenuScreen(
                 item(span = { GridItemSpan(3) }) {
                     AnimatedVisibility(
                         visible = !isPinnedCollapsed,
-                        enter = expandVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(),
+                        enter = expandVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)) + fadeIn(),
                         exit = shrinkVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy)) + fadeOut()
                     ) {
                         SectionGrid(
@@ -378,7 +462,7 @@ fun MainMenuScreen(
                                             } else {
                                                 Box(contentAlignment = Alignment.Center) {
                                                     Icon(
-                                                        imageVector = Icons.Default.MusicNote,
+                                                        imageVector = Icons.Rounded.MusicNote,
                                                         contentDescription = null,
                                                         modifier = Modifier.size(36.dp),
                                                         tint = MaterialTheme.colorScheme.primary
@@ -430,7 +514,7 @@ fun MainMenuScreen(
                             modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
                         )
                         Icon(
-                            imageVector = if (isPlaylistsCollapsed) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                            imageVector = if (isPlaylistsCollapsed) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -440,7 +524,7 @@ fun MainMenuScreen(
                 item(span = { GridItemSpan(3) }) {
                     AnimatedVisibility(
                         visible = !isPlaylistsCollapsed,
-                        enter = expandVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(),
+                        enter = expandVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)) + fadeIn(),
                         exit = shrinkVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy)) + fadeOut()
                     ) {
                         SectionGrid(
@@ -505,7 +589,7 @@ fun MainMenuScreen(
                             modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
                         )
                         Icon(
-                            imageVector = if (isAlbumsCollapsed) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                            imageVector = if (isAlbumsCollapsed) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -516,7 +600,7 @@ fun MainMenuScreen(
             item(span = { GridItemSpan(3) }) {
                 AnimatedVisibility(
                     visible = !isAlbumsCollapsed,
-                    enter = expandVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(),
+                    enter = expandVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)) + fadeIn(),
                     exit = shrinkVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy)) + fadeOut()
                 ) {
                     SectionGrid(
@@ -548,7 +632,7 @@ fun MainMenuScreen(
                                 } else {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
-                                            imageVector = Icons.Default.MusicNote,
+                                            imageVector = Icons.Rounded.MusicNote,
                                             contentDescription = null,
                                             modifier = Modifier.size(36.dp),
                                             tint = MaterialTheme.colorScheme.primary
@@ -580,9 +664,10 @@ fun MainMenuScreen(
 
         if (mainMode == MainMode.Stats) {
             StatsPanel(
+                songs = songs,
                 contentPadding = PaddingValues(
                     top = 92.dp,
-                    bottom = if (currentSong != null && !isMiniPlayerHidden) 195.dp else 105.dp,
+                    bottom = if (currentSong != null && !isMiniPlayerHidden) 220.dp else 140.dp,
                     start = 16.dp,
                     end = 16.dp
                 ),
@@ -623,7 +708,7 @@ fun MainMenuScreen(
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
-                                imageVector = Icons.Default.Settings,
+                                imageVector = Icons.Rounded.Settings,
                                 contentDescription = stringResource(R.string.settings),
                                 modifier = Modifier.size(18.dp),
                                 tint = MaterialTheme.colorScheme.onSurface
@@ -641,7 +726,7 @@ fun MainMenuScreen(
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
-                                imageVector = Icons.Default.Info,
+                                imageVector = Icons.Rounded.Info,
                                 contentDescription = stringResource(R.string.about),
                                 modifier = Modifier.size(18.dp),
                                 tint = MaterialTheme.colorScheme.onSurface
@@ -652,16 +737,103 @@ fun MainMenuScreen(
             }
         }
 
+        AnimatedVisibility(
+            visible = searchOpen,
+            enter = fadeIn(animationSpec = tween(250)) + slideInVertically(animationSpec = tween(durationMillis = 380, easing = FastOutSlowInEasing)) { it / 12 },
+            exit = fadeOut(animationSpec = tween(200)) + slideOutVertically(animationSpec = tween(durationMillis = 380, easing = FastOutSlowInEasing)) { it / 12 }
+        ) {
+            SearchResultsList(
+                songs = songs,
+                query = searchQuery,
+                mode = searchMode,
+                genre = searchGenre,
+                onSongClick = onSongClick,
+                onAlbumClick = onAlbumClick,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .imePadding()
+                    .navigationBarsPadding()
+            )
+        }
+
+        if (searchOpen) {
+            TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .bounceClickable {
+                            searchOpen = false
+                            searchQuery = ""
+                        },
+                    shape = CircleShape,
+                    color = glassFill(),
+                    border = glassStroke(),
+                    tonalElevation = 2.dp
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Rounded.KeyboardArrowDown,
+                            contentDescription = stringResource(R.string.back),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(32.dp),
+                    color = glassFill(),
+                    border = glassStroke()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(28.dp)
+                                .height(3.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.search),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.size(44.dp))
+            }
+        }
+
         // Floating Bottom Bar Pills (Mini Player + Nav Pills)
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
+                .imePadding()
                 .navigationBarsPadding()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            if (currentSong != null && !isMiniPlayerHidden) {
+            // The search field lives inside the bottom pill; here the mini player shows as usual
+            if (searchOpen) {
+            } else if (currentSong != null && !isMiniPlayerHidden) {
                 // Drag Progress Thresholds
                 val isDraggingLeftPastThreshold = dragOffsetX < -thresholdPx
                 val isDraggingRightPastThreshold = dragOffsetX > thresholdPx
@@ -698,7 +870,7 @@ fun MainMenuScreen(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Close,
+                                        imageVector = Icons.Rounded.Close,
                                         contentDescription = null,
                                         tint = if (isDraggingRightPastThreshold) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                     )
@@ -736,7 +908,7 @@ fun MainMenuScreen(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Icon(
-                                        imageVector = if (isFavSong) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                        imageVector = if (isFavSong) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                                         contentDescription = null,
                                         tint = if (isDraggingLeftPastThreshold) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                     )
@@ -761,7 +933,6 @@ fun MainMenuScreen(
                             .fillMaxWidth()
                             .graphicsLayer {
                                 translationX = animOffsetX
-                                translationY = animOffsetY * 0.4f
                             }
                             .pointerInput(currentSong.id) {
                                 detectDragGestures(
@@ -771,7 +942,7 @@ fun MainMenuScreen(
                                         val passedUpThreshold = dragOffsetY < -thresholdPx
 
                                         if (passedUpThreshold) {
-                                            onSongClick(MusicPlayerManager.currentSongIndex)
+                                            onOpenPlayer()
                                             dragOffsetX = 0f
                                             dragOffsetY = 0f
                                         } else if (passedLeftThreshold) {
@@ -800,7 +971,7 @@ fun MainMenuScreen(
                                 )
                             }
                             .bounceClickable {
-                                onSongClick(MusicPlayerManager.currentSongIndex)
+                                onOpenPlayer()
                             },
                         shape = RoundedCornerShape(36.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerHighest,
@@ -826,20 +997,44 @@ fun MainMenuScreen(
                                             .clip(RoundedCornerShape(22.dp)),
                                         color = MaterialTheme.colorScheme.primaryContainer
                                     ) {
-                                        if (currentSong.albumArt != null) {
-                                            Image(
-                                                bitmap = currentSong.albumArt.asImageBitmap(),
-                                                contentDescription = null,
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentScale = ContentScale.Crop
-                                            )
-                                        } else {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Icon(
-                                                    imageVector = Icons.Default.MusicNote,
+                                        AnimatedContent(
+                                            targetState = currentSong,
+                                            transitionSpec = {
+                                                val oldIndex = MusicPlayerManager.songs.indexOfFirst { it.id == initialState?.id }
+                                                val newIndex = MusicPlayerManager.songs.indexOfFirst { it.id == targetState?.id }
+                                                val isNext = if (oldIndex >= 0 && newIndex >= 0) {
+                                                    if (oldIndex == MusicPlayerManager.songs.lastIndex && newIndex == 0) true
+                                                    else if (oldIndex == 0 && newIndex == MusicPlayerManager.songs.lastIndex) false
+                                                    else newIndex >= oldIndex
+                                                } else true
+
+                                                if (isNext) {
+                                                    (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
+                                                        slideOutHorizontally { width -> -width } + fadeOut()
+                                                    )
+                                                } else {
+                                                    (slideInHorizontally { width -> -width } + fadeIn()).togetherWith(
+                                                        slideOutHorizontally { width -> width } + fadeOut()
+                                                    )
+                                                }
+                                            },
+                                            label = "MiniCoverSlide"
+                                        ) { song ->
+                                            if (song?.albumArt != null) {
+                                                Image(
+                                                    bitmap = song.albumArt.asImageBitmap(),
                                                     contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    contentScale = ContentScale.Crop
                                                 )
+                                            } else {
+                                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.MusicNote,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -852,13 +1047,31 @@ fun MainMenuScreen(
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
-                                        Text(
-                                            text = currentSong.artist,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(
+                                                text = currentSong.artist,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f, fill = false)
+                                            )
+                                            Text(
+                                                text = "•",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                            )
+                                            Text(
+                                                text = "${formatTime(MusicPlayerManager.currentPosition.toLong())} / ${formatTime(MusicPlayerManager.trackDuration.toLong())}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                maxLines = 1
+                                            )
+                                        }
                                     }
                                 }
 
@@ -868,7 +1081,7 @@ fun MainMenuScreen(
                                 ) {
                                     BounceIconButton(onClick = { MusicPlayerManager.skipPrevious() }) {
                                         Icon(
-                                            imageVector = Icons.Default.SkipPrevious,
+                                            imageVector = Icons.Rounded.SkipPrevious,
                                             contentDescription = stringResource(R.string.previous),
                                             tint = MaterialTheme.colorScheme.onSurface
                                         )
@@ -887,12 +1100,32 @@ fun MainMenuScreen(
                                     )
                                     BounceIconButton(onClick = { MusicPlayerManager.skipNext() }) {
                                         Icon(
-                                            imageVector = Icons.Default.SkipNext,
+                                            imageVector = Icons.Rounded.SkipNext,
                                             contentDescription = stringResource(R.string.next),
                                             tint = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
                                 }
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp, vertical = 2.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = formatTime(MusicPlayerManager.currentPosition.toLong()),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = formatTime(MusicPlayerManager.trackDuration.toLong()),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
 
                             WavyProgress(
@@ -906,79 +1139,236 @@ fun MainMenuScreen(
                 }
             }
 
-            // Bottom Nav Pills (Artists / Songs / Random)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+            // Unified Bottom Block (Search Bar + Bottom Nav in one single card)
+            var searchDragOffsetY by remember { mutableFloatStateOf(0f) }
+            Box(modifier = Modifier.fillMaxWidth()) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .pointerInput(Unit) {
+                        detectVerticalDragGestures(
+                            onDragEnd = {
+                                if (searchDragOffsetY > 30f) {
+                                    isSearchPillHidden = true
+                                    searchOpen = false
+                                } else if (searchDragOffsetY < -30f) {
+                                    isSearchPillHidden = false
+                                }
+                                searchDragOffsetY = 0f
+                            },
+                            onDragCancel = { searchDragOffsetY = 0f }
+                        ) { _, dragAmount ->
+                            searchDragOffsetY += dragAmount
+                        }
+                    },
+                shape = RoundedCornerShape(32.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                border = glassStroke(),
+                tonalElevation = 4.dp
             ) {
-                BounceSurface(
+                Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp),
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    border = glassStroke(),
-                    onClick = onArtistsClick
+                        .fillMaxWidth()
+                        .padding(6.dp)
                 ) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = stringResource(R.string.artists),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-
-                BounceSurface(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp),
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    border = glassStroke(),
-                    onClick = onSongsClick
-                ) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = stringResource(R.string.songs),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-
-                BounceSurface(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp),
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    border = glassStroke(),
-                    onClick = onRandomizeClick,
-                ) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.Top
+                    ) {
+                        AnimatedVisibility(
+                            visible = !isSearchPillHidden,
+                            enter = fadeIn(animationSpec = tween(200)) + expandVertically(animationSpec = tween(220, easing = FastOutSlowInEasing)),
+                            exit = fadeOut(animationSpec = tween(150)) + shrinkVertically(animationSpec = tween(220, easing = FastOutSlowInEasing))
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Shuffle,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = stringResource(R.string.random),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                AnimatedContent(
+                                    targetState = searchOpen,
+                                    transitionSpec = {
+                                        (fadeIn(animationSpec = tween(250)) togetherWith
+                                            fadeOut(animationSpec = tween(200)))
+                                            .using(SizeTransform(clip = false))
+                                    },
+                                    label = "searchSwap"
+                                ) { open ->
+                                    if (open) {
+                                        SearchPanel(
+                                            query = searchQuery,
+                                            onQueryChange = { searchQuery = it },
+                                            onClose = { searchOpen = false },
+                                            mode = searchMode,
+                                            onModeChange = { searchMode = it },
+                                            genres = searchGenres,
+                                            selectedGenre = searchGenre,
+                                            onGenreChange = { searchGenre = it }
+                                        )
+                                    } else {
+                                        CollapsedSearchPill(
+                                            onClick = { searchOpen = true },
+                                            onHide = { isSearchPillHidden = true }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        AnimatedVisibility(
+                            visible = !searchOpen,
+                            enter = fadeIn(animationSpec = tween(200)) + expandVertically(animationSpec = tween(220, easing = FastOutSlowInEasing)),
+                            exit = fadeOut(animationSpec = tween(150)) + shrinkVertically(animationSpec = tween(220, easing = FastOutSlowInEasing))
+                        ) {
+                            BottomNavBar(
+                                onArtists = onArtistsClick,
+                                onSongs = onSongsClick,
+                                onRandom = onRandomizeClick
                             )
                         }
                     }
+
                 }
+            }
+
+            // Search button sits on top of the pill and sticks out past its edge
+                    // Bright peeking button peeking out slightly above Random when search is hidden
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(y = (-22).dp, x = (-14).dp)
+                    ) {
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = isSearchPillHidden,
+                            enter = fadeIn(animationSpec = tween(200)) + scaleIn(animationSpec = tween(200, easing = FastOutSlowInEasing), initialScale = 0.7f),
+                            exit = fadeOut(animationSpec = tween(150)) + scaleOut(animationSpec = tween(200, easing = FastOutSlowInEasing), targetScale = 0.7f)
+                        ) {
+                            Surface(
+                                modifier = Modifier.size(40.dp),
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary,
+                                tonalElevation = 8.dp,
+                                shadowElevation = 10.dp,
+                                border = BorderStroke(2.dp, MaterialTheme.colorScheme.surface),
+                                onClick = { isSearchPillHidden = false }
+                            ) {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Search,
+                                        contentDescription = "Show search",
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BottomNavBar(
+    onArtists: () -> Unit,
+    onSongs: () -> Unit,
+    onRandom: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        NavSegment(stringResource(R.string.artists), Icons.Rounded.Person, Modifier.weight(1f), onArtists)
+        NavSegment(stringResource(R.string.songs), Icons.Rounded.MusicNote, Modifier.weight(1f), onSongs)
+        NavSegment(stringResource(R.string.random), Icons.Rounded.Shuffle, Modifier.weight(1f), onRandom)
+    }
+}
+
+@Composable
+private fun NavSegment(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector?,
+    modifier: Modifier,
+    onClick: () -> Unit,
+) {
+    BounceSurface(
+        modifier = modifier.fillMaxHeight(),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        onClick = onClick
+    ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                if (icon != null) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CollapsedSearchPill(
+    onClick: () -> Unit,
+    onHide: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = stringResource(R.string.search_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(
+                onClick = onHide,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.KeyboardArrowDown,
+                    contentDescription = stringResource(R.string.close),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }

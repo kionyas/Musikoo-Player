@@ -1,5 +1,12 @@
 package com.reikoonya.musikoo.ui
 
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import android.app.Activity
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -13,7 +20,10 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import com.reikoonya.musikoo.util.ShareUtils
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -31,9 +41,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -54,14 +64,13 @@ import com.reikoonya.musikoo.ui.theme.LocalFancyStyle
 import com.reikoonya.musikoo.util.DeleteResult
 import com.reikoonya.musikoo.util.MusicPlayerManager
 import com.reikoonya.musikoo.util.SongDeleter
-import com.reikoonya.musikoo.util.accentFromBitmap
-import com.reikoonya.musikoo.util.readableOn
 import com.reikoonya.musikoo.util.formatTime
 
 @Composable
 fun PlayerScreen(
     songs: List<Song>,
     initialSongIndex: Int,
+    onQueueClick: (() -> Unit)? = null,
     onSongDeleted: (Song) -> Unit = {},
     onSongsEdited: (List<Song>) -> Unit = {},
     onBackClick: () -> Unit,
@@ -89,17 +98,8 @@ fun PlayerScreen(
     val isFav = currentSong?.let { PlaylistManager.isFavorite(context, it.id) } == true
 
     val fancy = LocalFancyStyle.current
-    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
-    val art = currentSong?.albumArt
-    val rawAccent = remember(art, isDark, fancy) {
-        if (fancy) art?.let { accentFromBitmap(it, isDark) } else null
-    }
-    val accent by animateColorAsState(
-        targetValue = rawAccent ?: MaterialTheme.colorScheme.primary,
-        animationSpec = tween(600),
-        label = "accent"
-    )
-    val onAccent = readableOn(accent)
+    val accent = MaterialTheme.colorScheme.primary
+    val onAccent = MaterialTheme.colorScheme.onPrimary
 
     var showDeleteDialog by remember { mutableStateOf(false) }
     var pendingDeleteId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -155,7 +155,7 @@ fun PlayerScreen(
             shape = RoundedCornerShape(36.dp),
             icon = {
                 Icon(
-                    imageVector = Icons.Default.Delete,
+                    imageVector = Icons.Rounded.Delete,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.error
                 )
@@ -227,12 +227,16 @@ fun PlayerScreen(
     val artScale by animateFloatAsState(
         targetValue = if (isPlaying || !fancy) 1f else 0.88f,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
+            dampingRatio = Spring.DampingRatioLowBouncy,
             stiffness = Spring.StiffnessLow
         ),
         label = "artScale"
     )
     val artShape = RoundedCornerShape(36.dp)
+
+    // Horizontal swipe on the cover: left = next track, right = previous track
+    var coverDrag by remember { mutableFloatStateOf(0f) }
+    val swipeThresholdPx = with(LocalDensity.current) { 72.dp.toPx() }
 
     Box(
         modifier = Modifier
@@ -262,7 +266,7 @@ fun PlayerScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 GlassIconButton(
-                    icon = Icons.Default.KeyboardArrowDown,
+                    icon = Icons.Rounded.KeyboardArrowDown,
                     contentDescription = stringResource(R.string.collapse),
                     onClick = onBackClick,
                     width = 44.dp,
@@ -292,7 +296,7 @@ fun PlayerScreen(
 
                 Box {
                     GlassIconButton(
-                        icon = Icons.Default.MoreVert,
+                        icon = Icons.Rounded.MoreVert,
                         contentDescription = stringResource(R.string.menu),
                         onClick = { menuExpanded = true },
                         width = 44.dp,
@@ -318,33 +322,43 @@ fun PlayerScreen(
                             },
                             leadingIcon = {
                                 Icon(
-                                    imageVector = if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                    imageVector = if (isFav) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                                     contentDescription = null,
                                     tint = if (isFav) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         )
                         DropdownMenuItem(
+                            text = { Text(stringResource(R.string.share)) },
+                            onClick = {
+                                menuExpanded = false
+                                currentSong?.let { song ->
+                                    ShareUtils.shareSongs(context, listOf(song))
+                                }
+                            },
+                            leadingIcon = { Icon(Icons.Rounded.Share, contentDescription = null) }
+                        )
+                        DropdownMenuItem(
                             text = { Text(stringResource(R.string.add_to_playlist)) },
                             onClick = { menuExpanded = false; showAddToPlaylist = true },
-                            leadingIcon = { Icon(Icons.Default.PlaylistAdd, contentDescription = null) }
+                            leadingIcon = { Icon(Icons.Rounded.PlaylistAdd, contentDescription = null) }
                         )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.properties)) },
                             onClick = { menuExpanded = false; showPropertiesDialog = true },
-                            leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) }
+                            leadingIcon = { Icon(Icons.Rounded.Info, contentDescription = null) }
                         )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.edit_tags)) },
                             onClick = { menuExpanded = false; showTagEditor = true },
-                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                            leadingIcon = { Icon(Icons.Rounded.Edit, contentDescription = null) }
                         )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.delete_from_device), color = MaterialTheme.colorScheme.error) },
                             onClick = { menuExpanded = false; showDeleteDialog = true },
                             leadingIcon = {
                                 Icon(
-                                    Icons.Default.Delete,
+                                    Icons.Rounded.Delete,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.error
                                 )
@@ -361,7 +375,34 @@ fun PlayerScreen(
                     .fillMaxWidth()
                     .weight(1f, fill = false)
                     .aspectRatio(1f)
-                    .graphicsLayer { scaleX = artScale; scaleY = artScale }
+                    .graphicsLayer {
+                        scaleX = artScale
+                        scaleY = artScale
+                        translationX = coverDrag * 0.35f
+                    }
+                    .pointerInput(Unit) {
+                        var total = 0f
+                        detectHorizontalDragGestures(
+                            onDragStart = { total = 0f },
+                            onHorizontalDrag = { change, amount ->
+                                change.consume()
+                                total += amount
+                                coverDrag = total
+                            },
+                            onDragEnd = {
+                                when {
+                                    total < -swipeThresholdPx -> MusicPlayerManager.skipNext()
+                                    total > swipeThresholdPx -> MusicPlayerManager.skipPrevious()
+                                }
+                                total = 0f
+                                coverDrag = 0f
+                            },
+                            onDragCancel = {
+                                total = 0f
+                                coverDrag = 0f
+                            }
+                        )
+                    }
                     .then(
                         if (fancy) Modifier.shadow(28.dp, artShape, ambientColor = accent, spotColor = accent)
                         else Modifier
@@ -371,10 +412,29 @@ fun PlayerScreen(
                 contentAlignment = Alignment.Center
             ) {
                 AnimatedContent(
-                    targetState = currentSong?.albumArt,
-                    transitionSpec = { fadeIn() togetherWith fadeOut() },
-                    label = "AlbumArtCrossfade"
-                ) { artBitmap ->
+                    targetState = currentSong,
+                    transitionSpec = {
+                        val oldIndex = MusicPlayerManager.songs.indexOfFirst { it.id == initialState?.id }
+                        val newIndex = MusicPlayerManager.songs.indexOfFirst { it.id == targetState?.id }
+                        val isNext = if (oldIndex >= 0 && newIndex >= 0) {
+                            if (oldIndex == MusicPlayerManager.songs.lastIndex && newIndex == 0) true
+                            else if (oldIndex == 0 && newIndex == MusicPlayerManager.songs.lastIndex) false
+                            else newIndex >= oldIndex
+                        } else true
+
+                        if (isNext) {
+                            (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
+                                slideOutHorizontally { width -> -width } + fadeOut()
+                            )
+                        } else {
+                            (slideInHorizontally { width -> -width } + fadeIn()).togetherWith(
+                                slideOutHorizontally { width -> width } + fadeOut()
+                            )
+                        }
+                    },
+                    label = "AlbumArtSlide"
+                ) { song ->
+                    val artBitmap = song?.albumArt
                     if (artBitmap != null) {
                         Image(
                             bitmap = artBitmap.asImageBitmap(),
@@ -384,7 +444,7 @@ fun PlayerScreen(
                         )
                     } else {
                         Icon(
-                            imageVector = Icons.Default.MusicNote,
+                            imageVector = Icons.Rounded.MusicNote,
                             contentDescription = null,
                             modifier = Modifier.size(96.dp),
                             tint = accent
@@ -395,41 +455,69 @@ fun PlayerScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                AnimatedContent(
-                    targetState = currentSong?.title ?: stringResource(R.string.select_track),
-                    transitionSpec = { fadeIn() togetherWith fadeOut() },
-                    label = "TitleCrossfade"
-                ) { title ->
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.basicMarquee()
-                    )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    AnimatedContent(
+                        targetState = currentSong?.title ?: stringResource(R.string.select_track),
+                        transitionSpec = { fadeIn() togetherWith fadeOut() },
+                        label = "TitleCrossfade"
+                    ) { title ->
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.basicMarquee()
+                        )
+                    }
+
+                    AnimatedContent(
+                        targetState = currentSong?.artist ?: stringResource(R.string.unknown_artist),
+                        transitionSpec = { fadeIn() togetherWith fadeOut() },
+                        label = "ArtistCrossfade"
+                    ) { artistText ->
+                        Text(
+                            text = artistText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.basicMarquee()
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.width(16.dp))
 
-                AnimatedContent(
-                    targetState = currentSong?.artist ?: stringResource(R.string.unknown_artist),
-                    transitionSpec = { fadeIn() togetherWith fadeOut() },
-                    label = "ArtistCrossfade"
-                ) { artistText ->
-                    Text(
-                        text = artistText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.basicMarquee()
-                    )
+                if (currentSong != null) {
+                    Surface(
+                        modifier = Modifier.size(52.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        color = accent.copy(alpha = 0.22f),
+                        onClick = {
+                            PlaylistManager.toggleFavorite(context, currentSong.id)
+                        }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (isFav) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                                contentDescription = "Favorite",
+                                tint = accent,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
                 }
             }
 
@@ -443,6 +531,25 @@ fun PlayerScreen(
                 accent = accent
             )
 
+            // Elapsed time on the left, total on the right
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = formatTime(MusicPlayerManager.currentPosition.toLong()),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = formatTime(MusicPlayerManager.trackDuration.toLong()),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(
@@ -451,23 +558,26 @@ fun PlayerScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 GlassIconButton(
-                    icon = Icons.Default.Replay10,
+                    icon = Icons.Rounded.Replay10,
                     contentDescription = stringResource(R.string.rewind_10),
                     onClick = { MusicPlayerManager.rewind10() },
                     width = 44.dp,
                     height = 44.dp,
                     iconSize = 22.dp,
-                    shape = CircleShape
+                    shape = CircleShape,
+                    containerColor = Color.Transparent
                 )
 
                 GlassIconButton(
-                    icon = Icons.Default.SkipPrevious,
+                    icon = Icons.Rounded.SkipPrevious,
                     contentDescription = stringResource(R.string.previous),
                     onClick = { MusicPlayerManager.skipPrevious() },
                     width = 56.dp,
                     height = 56.dp,
                     iconSize = 28.dp,
-                    shape = CircleShape
+                    shape = CircleShape,
+                    containerColor = accent.copy(alpha = 0.28f),
+                    contentColor = accent
                 )
 
                 ExpressivePlayButton(
@@ -484,30 +594,34 @@ fun PlayerScreen(
                 )
 
                 GlassIconButton(
-                    icon = Icons.Default.SkipNext,
+                    icon = Icons.Rounded.SkipNext,
                     contentDescription = stringResource(R.string.next),
                     onClick = { MusicPlayerManager.skipNext() },
                     width = 56.dp,
                     height = 56.dp,
                     iconSize = 28.dp,
-                    shape = CircleShape
+                    shape = CircleShape,
+                    containerColor = accent.copy(alpha = 0.28f),
+                    contentColor = accent
                 )
 
                 GlassIconButton(
-                    icon = Icons.Default.Forward10,
+                    icon = Icons.Rounded.Forward10,
                     contentDescription = stringResource(R.string.forward_10),
                     onClick = { MusicPlayerManager.forward10() },
                     width = 44.dp,
                     height = 44.dp,
                     iconSize = 22.dp,
-                    shape = CircleShape
+                    shape = CircleShape,
+                    containerColor = Color.Transparent
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             SplitBottomPills(
-                accent = accent
+                accent = accent,
+                onQueueClick = onQueueClick
             )
         }
     }

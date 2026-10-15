@@ -1,5 +1,6 @@
 package com.reikoonya.musikoo.ui
 
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -56,7 +57,7 @@ fun AlbumsScreen(
         ActionsDialog(
             title = name,
             actions = listOf(
-                MenuAction(Icons.Default.Edit, stringResource(R.string.edit_tags)) {
+                MenuAction(Icons.Rounded.Edit, stringResource(R.string.edit_tags)) {
                     editSongs = albums[name].orEmpty()
                     actionsAlbum = null
                 }
@@ -116,7 +117,7 @@ fun AlbumsScreen(
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = Icons.Default.Album,
+                                    imageVector = Icons.Rounded.Album,
                                     contentDescription = null,
                                     modifier = Modifier.size(40.dp),
                                     tint = MaterialTheme.colorScheme.primary
@@ -169,7 +170,7 @@ fun AlbumsScreen(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
+                        imageVector = Icons.Rounded.KeyboardArrowDown,
                         contentDescription = stringResource(R.string.back),
                         tint = MaterialTheme.colorScheme.onSurface
                     )

@@ -1,9 +1,11 @@
 package com.reikoonya.musikoo.ui.components
 
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -46,34 +48,48 @@ fun ExpressivePlayButton(
     containerColor: Color,
     contentColor: Color,
     modifier: Modifier = Modifier,
-    width: Dp = 88.dp,
-    height: Dp = 68.dp,
-    iconSize: Dp = 34.dp,
-    playingCorner: Dp = 26.dp,
+    width: Dp = 72.dp,
+    height: Dp = 72.dp,
+    size: Dp? = null,
+    iconSize: Dp = 32.dp,
+    playingCorner: Dp = 22.dp,
 ) {
+    val actualWidth = size ?: width
+    val actualHeight = size ?: height
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
 
+    val targetCorner = if (isPlaying) playingCorner else actualHeight / 2
+    val targetWidth = if (isPlaying) actualWidth else actualHeight
+
     val corner by animateDpAsState(
-        targetValue = if (isPlaying) playingCorner else height / 2, // height/2 = circle or pill
+        targetValue = targetCorner,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
+            dampingRatio = Spring.DampingRatioLowBouncy,
             stiffness = Spring.StiffnessMediumLow
         ),
         label = "playCorner"
     )
     val currentWidth by animateDpAsState(
-        targetValue = if (pressed) width * 0.88f else width,
+        targetValue = if (pressed) targetWidth * 0.9f else targetWidth,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessMediumLow
         ),
         label = "playWidth"
+    )
+    val currentHeight by animateDpAsState(
+        targetValue = if (pressed) actualHeight * 0.9f else actualHeight,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "playHeight"
     )
 
     Surface(
         onClick = onClick,
-        modifier = modifier.size(width = currentWidth, height = height),
+        modifier = modifier.size(width = currentWidth, height = currentHeight),
         shape = RoundedCornerShape(corner),
         color = containerColor,
         contentColor = contentColor,
@@ -83,13 +99,13 @@ fun ExpressivePlayButton(
             AnimatedContent(
                 targetState = isPlaying,
                 transitionSpec = {
-                    (fadeIn() + scaleIn(initialScale = 0.6f)) togetherWith
-                            (fadeOut() + scaleOut(targetScale = 0.6f))
+                    (fadeIn(animationSpec = tween(220)) + scaleIn(animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium), initialScale = 0.5f)) togetherWith
+                            (fadeOut(animationSpec = tween(180)) + scaleOut(animationSpec = tween(180), targetScale = 0.5f))
                 },
                 label = "playIcon"
             ) { playing ->
                 Icon(
-                    imageVector = if (playing) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    imageVector = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                     contentDescription = if (playing) "Pause" else "Play",
                     modifier = Modifier.size(iconSize)
                 )
@@ -109,6 +125,8 @@ fun GlassIconButton(
     height: Dp = 52.dp,
     iconSize: Dp = 26.dp,
     shape: Shape = RoundedCornerShape(22.dp),
+    containerColor: Color = glassFill(),
+    contentColor: Color = MaterialTheme.colorScheme.onSurface,
     /** In plain M3, draw just the icon without a container (as before). */
     bareWhenClassic: Boolean = false,
 ) {
@@ -126,7 +144,7 @@ fun GlassIconButton(
                 imageVector = icon,
                 contentDescription = contentDescription,
                 modifier = Modifier.size(iconSize),
-                tint = MaterialTheme.colorScheme.onSurface
+                tint = contentColor
             )
         }
         return
@@ -138,9 +156,9 @@ fun GlassIconButton(
             .size(width = width, height = height)
             .pressScale(interaction),
         shape = shape,
-        color = glassFill(),
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        border = glassStroke(),
+        color = containerColor,
+        contentColor = contentColor,
+        border = null,
         interactionSource = interaction
     ) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

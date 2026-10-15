@@ -36,7 +36,7 @@ fun Modifier.pressScale(source: InteractionSource, pressedScale: Float = 0.92f):
     val scale by animateFloatAsState(
         targetValue = if (pressed) pressedScale else 1f,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
+            dampingRatio = Spring.DampingRatioLowBouncy,
             stiffness = Spring.StiffnessMedium
         ),
         label = "pressScale"
