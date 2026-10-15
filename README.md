@@ -11,6 +11,7 @@
 # ★ Utils
 - Highly customizable playlists
 - Tag (Meatadata) editor, you can change anything!
+- Change queue as you want everywhere
 <img width="2400" height="2400" alt="collage_2" src="https://github.com/user-attachments/assets/86b688f6-8ffb-45c5-b521-7978634ef0da" />
 
 
