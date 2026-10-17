@@ -9,15 +9,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.State
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
-import kotlinx.coroutines.delay
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -26,103 +18,186 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.min
 import kotlin.math.sin
 
-// ---------- shared wave parts ----------
+private const val TWO_PI = (2 * PI).toFloat()
 
-/** Wave amplitude: 1 while playing, 0 when paused (with a spring-based settle). */
 @Composable
-private fun rememberWaveAmplitude(isPlaying: Boolean): State<Float> =
-    animateFloatAsState(
+private fun rememberWaveState(isPlaying: Boolean): Pair<State<Float>, State<Float>> {
+    val amplitude = animateFloatAsState(
         targetValue = if (isPlaying) 1f else 0f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioLowBouncy,
             stiffness = Spring.StiffnessLow
         ),
-        label = "waveAmplitude"
+        label = "amp"
     )
-
-/** The wave phase moves only while music plays; no frames are spent when paused. */
-@Composable
-private fun rememberWavePhase(isPlaying: Boolean): State<Float> {
     val phase = remember { mutableFloatStateOf(0f) }
     LaunchedEffect(isPlaying) {
         if (isPlaying) {
-            val twoPi = (2 * PI).toFloat()
             var last = System.nanoTime()
             while (true) {
-                // ~30 frames per second: the wave looks the same but redraws 3–4 times less often
                 delay(33)
                 val now = System.nanoTime()
                 val dt = (now - last) / 1_000_000_000f
-                phase.floatValue = (phase.floatValue + dt * twoPi / 1.6f) % twoPi // one cycle per 1.6 s
+                phase.floatValue = (phase.floatValue + dt * TWO_PI / 1.6f) % TWO_PI
                 last = now
             }
         }
     }
-    return phase
+    return amplitude to phase
 }
 
-/** Draws the track: the played part as a wave, the rest as a straight line, optionally a thumb. */
-private fun DrawScope.drawWavyTrack(
-    fraction: Float,
-    phase: Float,
-    amplitudePx: Float,
-    wavelengthPx: Float,
-    strokePx: Float,
-    gapPx: Float,
-    activeColor: Color,
-    trackColor: Color,
-    thumbWidthPx: Float = 0f,
-    thumbHeightPx: Float = 0f,
+/**
+ * Выразительный Wavy Slider: бегущая волна при воспроизведении,
+ * пружинное выравнивание при паузе и ползунок без обрезки краев.
+ */
+@Composable
+fun PlayerSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    isPlaying: Boolean,
+    accent: Color,
+    modifier: Modifier = Modifier,
+    trackColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f),
+    onDraggingChanged: (Boolean) -> Unit = {}
 ) {
-    val w = size.width
-    val cy = size.height / 2f
-    val x = (w * fraction).coerceIn(0f, w)
-    val k = (2 * PI / wavelengthPx).toFloat()
+    val currentOnValueChange by rememberUpdatedState(onValueChange)
+    val currentRange by rememberUpdatedState(valueRange)
+    val (amplitude, phase) = rememberWaveState(isPlaying)
 
-    // Unplayed part: straight line
-    val inactiveStart = (x + gapPx).coerceAtMost(w)
-    if (inactiveStart < w) {
-        drawLine(
-            color = trackColor,
-            start = Offset(inactiveStart, cy),
-            end = Offset(w, cy),
-            strokeWidth = strokePx,
-            cap = StrokeCap.Round
-        )
+    var widthPx by remember { mutableFloatStateOf(1f) }
+    var isDragging by remember { mutableStateOf(false) }
+
+    val span = (valueRange.endInclusive - valueRange.start).coerceAtLeast(1e-3f)
+    val fraction = ((value - valueRange.start) / span).coerceIn(0f, 1f)
+
+    val thumbScale by animateFloatAsState(
+        targetValue = if (isDragging) 1.35f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "thumbScale"
+    )
+
+    fun xToValue(touchX: Float): Float {
+        val thumbRadius = 3.dp.value * 2.5f
+        val trackStart = thumbRadius
+        val trackEnd = (widthPx - thumbRadius).coerceAtLeast(trackStart + 1f)
+        val clampedFraction = ((touchX - trackStart) / (trackEnd - trackStart)).coerceIn(0f, 1f)
+        return currentRange.start + clampedFraction * (currentRange.endInclusive - currentRange.start)
     }
 
-    // Played part: wave moving right
-    val activeEnd = (x - gapPx).coerceAtLeast(0f)
-    if (activeEnd > 0f) {
-        val path = Path()
-        val step = 2.dp.toPx()
-        var px = 0f
-        path.moveTo(0f, cy + amplitudePx * sin(-phase))
-        while (px < activeEnd) {
-            px = min(px + step, activeEnd)
-            path.lineTo(px, cy + amplitudePx * sin(k * px - phase))
+    Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(38.dp)
+            .onSizeChanged { widthPx = it.width.toFloat().coerceAtLeast(1f) }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isDragging = true
+                        onDraggingChanged(true)
+                        tryAwaitRelease()
+                        isDragging = false
+                        onDraggingChanged(false)
+                    },
+                    onTap = { offset -> currentOnValueChange(xToValue(offset.x)) }
+                )
+            }
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onDragStart = { offset ->
+                        isDragging = true
+                        onDraggingChanged(true)
+                        currentOnValueChange(xToValue(offset.x))
+                    },
+                    onHorizontalDrag = { change, _ ->
+                        change.consume()
+                        currentOnValueChange(xToValue(change.position.x))
+                    },
+                    onDragEnd = {
+                        isDragging = false
+                        onDraggingChanged(false)
+                    },
+                    onDragCancel = {
+                        isDragging = false
+                        onDraggingChanged(false)
+                    }
+                )
+            }
+    ) {
+        val w = size.width
+        val cy = size.height / 2f
+
+        val strokePx = 3.8.dp.toPx()
+        val thumbWidthPx = 5.5.dp.toPx() * thumbScale
+        val thumbHeightPx = 26.dp.toPx() * thumbScale
+        val thumbRadius = thumbWidthPx / 2f
+
+        // Ограничиваем трек внутренними полями, чтобы капсула никогда не срезалась
+        val trackStart = thumbRadius
+        val trackEnd = w - thumbRadius
+        val x = trackStart + (trackEnd - trackStart) * fraction
+
+        val amplitudePx = 3.6.dp.toPx() * amplitude.value
+        val wavelengthPx = 28.dp.toPx()
+        val k = TWO_PI / wavelengthPx
+        val gapPx = 3.dp.toPx()
+
+        // 1. Непроигранная часть (справа от ползунка)
+        val inactiveStart = (x + gapPx).coerceAtMost(trackEnd)
+        if (inactiveStart < trackEnd) {
+            drawLine(
+                color = trackColor,
+                start = Offset(inactiveStart, cy),
+                end = Offset(trackEnd, cy),
+                strokeWidth = strokePx,
+                cap = StrokeCap.Round
+            )
         }
-        drawPath(
-            path = path,
-            color = activeColor,
-            style = Stroke(width = strokePx, cap = StrokeCap.Round, join = StrokeJoin.Round)
-        )
-    }
 
-    // Pill-shaped thumb
-    if (thumbWidthPx > 0f && thumbHeightPx > 0f) {
+        // 2. Проигранная часть (волна или прямая)
+        val activeEnd = (x - gapPx).coerceAtLeast(trackStart)
+        if (activeEnd > trackStart) {
+            if (amplitudePx > 0.5f) {
+                val path = Path()
+                val step = 2.dp.toPx()
+                var px = trackStart
+                path.moveTo(trackStart, cy + amplitudePx * sin(k * trackStart - phase.value))
+                while (px < activeEnd) {
+                    px = min(px + step, activeEnd)
+                    path.lineTo(px, cy + amplitudePx * sin(k * px - phase.value))
+                }
+                drawPath(
+                    path = path,
+                    color = accent,
+                    style = Stroke(width = strokePx, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                )
+            } else {
+                drawLine(
+                    color = accent,
+                    start = Offset(trackStart, cy),
+                    end = Offset(activeEnd, cy),
+                    strokeWidth = strokePx,
+                    cap = StrokeCap.Round
+                )
+            }
+        }
+
+        // 3. Вертикальный капсульный ползунок (всегда строго в границах)
         drawRoundRect(
-            color = activeColor,
+            color = accent,
             topLeft = Offset(x - thumbWidthPx / 2f, cy - thumbHeightPx / 2f),
             size = Size(thumbWidthPx, thumbHeightPx),
             cornerRadius = CornerRadius(thumbWidthPx / 2f)
@@ -130,73 +205,7 @@ private fun DrawScope.drawWavyTrack(
     }
 }
 
-// ---------- slider (player screen) ----------
-
-/**
- * Progress slider in Material 3 Expressive style: the played part is a moving wave,
- * on pause the wave smoothly (springily) flattens. Thumb: a vertical pill.
- * Uses stable APIs, so no Material3 update is needed.
- */
-@Composable
-fun WavySlider(
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    valueRange: ClosedFloatingPointRange<Float>,
-    isPlaying: Boolean,
-    modifier: Modifier = Modifier,
-    activeColor: Color = MaterialTheme.colorScheme.primary,
-    trackColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f),
-) {
-    val currentOnValueChange by rememberUpdatedState(onValueChange)
-    val currentRange by rememberUpdatedState(valueRange)
-    val amplitude = rememberWaveAmplitude(isPlaying)
-    val phase = rememberWavePhase(isPlaying)
-
-    var widthPx by remember { mutableFloatStateOf(1f) }
-    val span = (valueRange.endInclusive - valueRange.start).coerceAtLeast(1e-3f)
-    val fraction = ((value - valueRange.start) / span).coerceIn(0f, 1f)
-
-    fun xToValue(x: Float): Float {
-        val r = currentRange
-        return r.start + (x / widthPx).coerceIn(0f, 1f) * (r.endInclusive - r.start)
-    }
-
-    Canvas(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(36.dp)
-            .onSizeChanged { widthPx = it.width.toFloat().coerceAtLeast(1f) }
-            .pointerInput(Unit) {
-                detectTapGestures { offset -> currentOnValueChange(xToValue(offset.x)) }
-            }
-            .pointerInput(Unit) {
-                detectHorizontalDragGestures(
-                    onDragStart = { offset -> currentOnValueChange(xToValue(offset.x)) },
-                    onHorizontalDrag = { change, _ ->
-                        change.consume()
-                        currentOnValueChange(xToValue(change.position.x))
-                    }
-                )
-            }
-    ) {
-        drawWavyTrack(
-            fraction = fraction,
-            phase = phase.value,
-            amplitudePx = 3.5.dp.toPx() * amplitude.value,
-            wavelengthPx = 26.dp.toPx(),
-            strokePx = 4.dp.toPx(),
-            gapPx = 6.dp.toPx(),
-            activeColor = activeColor,
-            trackColor = trackColor,
-            thumbWidthPx = 4.dp.toPx(),
-            thumbHeightPx = 24.dp.toPx()
-        )
-    }
-}
-
-// ---------- compact indicator (mini player) ----------
-
-/** Thin wavy progress indicator without a thumb, for the mini player. */
+/** Волнистая полоска прогресса для мини-плеера */
 @Composable
 fun WavyProgress(
     progress: Float,
@@ -206,40 +215,50 @@ fun WavyProgress(
     activeColor: Color = MaterialTheme.colorScheme.primary,
     trackColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f),
 ) {
-    val amplitude = rememberWaveAmplitude(isPlaying)
-    val phase = rememberWavePhase(isPlaying)
+    val (amplitude, phase) = rememberWaveState(isPlaying)
 
     Canvas(modifier = modifier.fillMaxWidth().height(height)) {
-        drawWavyTrack(
-            fraction = progress.coerceIn(0f, 1f),
-            phase = phase.value,
-            amplitudePx = 2.5.dp.toPx() * amplitude.value,
-            wavelengthPx = 18.dp.toPx(),
-            strokePx = 3.dp.toPx(),
-            gapPx = 0f,
-            activeColor = activeColor,
-            trackColor = trackColor
-        )
+        val w = size.width
+        val cy = size.height / 2f
+        val x = (w * progress.coerceIn(0f, 1f)).coerceIn(0f, w)
+        val strokePx = 3.dp.toPx()
+        val amplitudePx = 2.6.dp.toPx() * amplitude.value
+        val wavelengthPx = 20.dp.toPx()
+        val k = TWO_PI / wavelengthPx
+
+        if (x < w) {
+            drawLine(
+                color = trackColor,
+                start = Offset(x, cy),
+                end = Offset(w, cy),
+                strokeWidth = strokePx,
+                cap = StrokeCap.Round
+            )
+        }
+        if (x > 0f) {
+            if (amplitudePx > 0.5f) {
+                val path = Path()
+                val step = 2.dp.toPx()
+                var px = 0f
+                path.moveTo(0f, cy + amplitudePx * sin(-phase.value))
+                while (px < x) {
+                    px = min(px + step, x)
+                    path.lineTo(px, cy + amplitudePx * sin(k * px - phase.value))
+                }
+                drawPath(
+                    path = path,
+                    color = activeColor,
+                    style = Stroke(width = strokePx, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                )
+            } else {
+                drawLine(
+                    color = activeColor,
+                    start = Offset(0f, cy),
+                    end = Offset(x, cy),
+                    strokeWidth = strokePx,
+                    cap = StrokeCap.Round
+                )
+            }
+        }
     }
-}
-
-// ---------- player slider: wavy in both themes ----------
-
-@Composable
-fun PlayerSlider(
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    valueRange: ClosedFloatingPointRange<Float>,
-    isPlaying: Boolean,
-    accent: Color,
-    modifier: Modifier = Modifier,
-) {
-    WavySlider(
-        value = value,
-        onValueChange = onValueChange,
-        valueRange = valueRange,
-        isPlaying = isPlaying,
-        modifier = modifier,
-        activeColor = accent
-    )
 }

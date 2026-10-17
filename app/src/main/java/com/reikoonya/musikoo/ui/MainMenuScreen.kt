@@ -82,6 +82,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.reikoonya.musikoo.R
 import com.reikoonya.musikoo.data.Playlist
 import com.reikoonya.musikoo.data.PlaylistManager
@@ -685,32 +686,31 @@ fun MainMenuScreen(
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 10.dp, vertical = 4.dp),
+                .padding(horizontal = 12.dp, vertical = 6.dp),
             contentAlignment = Alignment.Center
         ) {
             Surface(
-                shape = RoundedCornerShape(32.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainer,
                 border = glassStroke(),
-                tonalElevation = 2.dp
+                tonalElevation = 3.dp
             ) {
                 Row(
-                    modifier = Modifier
-                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     BounceSurface(
-                        modifier = Modifier.size(34.dp),
+                        modifier = Modifier.size(36.dp),
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
                         onClick = onSettingsClick
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Rounded.Settings,
                                 contentDescription = stringResource(R.string.settings),
-                                modifier = Modifier.size(18.dp),
+                                modifier = Modifier.size(19.dp),
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
@@ -719,16 +719,16 @@ fun MainMenuScreen(
                     MainModeSwitch(mode = mainMode, onModeChange = { mainMode = it })
 
                     BounceSurface(
-                        modifier = Modifier.size(34.dp),
+                        modifier = Modifier.size(36.dp),
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
                         onClick = onAboutClick
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Rounded.Info,
                                 contentDescription = stringResource(R.string.about),
-                                modifier = Modifier.size(18.dp),
+                                modifier = Modifier.size(19.dp),
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
@@ -759,65 +759,33 @@ fun MainMenuScreen(
 
         if (searchOpen) {
             TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
-            Row(
+            Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Surface(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .bounceClickable {
-                            searchOpen = false
-                            searchQuery = ""
-                        },
                     shape = CircleShape,
-                    color = glassFill(),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
                     border = glassStroke(),
-                    tonalElevation = 2.dp
+                    tonalElevation = 3.dp
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Rounded.KeyboardArrowDown,
-                            contentDescription = stringResource(R.string.back),
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(32.dp),
-                    color = glassFill(),
-                    border = glassStroke()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    Row(
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .width(28.dp)
-                                .height(3.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = stringResource(R.string.search),
+                            text = stringResource(R.string.search).uppercase(),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
-
-                Spacer(modifier = Modifier.size(44.dp))
             }
         }
 
@@ -1000,13 +968,7 @@ fun MainMenuScreen(
                                         AnimatedContent(
                                             targetState = currentSong,
                                             transitionSpec = {
-                                                val oldIndex = MusicPlayerManager.songs.indexOfFirst { it.id == initialState?.id }
-                                                val newIndex = MusicPlayerManager.songs.indexOfFirst { it.id == targetState?.id }
-                                                val isNext = if (oldIndex >= 0 && newIndex >= 0) {
-                                                    if (oldIndex == MusicPlayerManager.songs.lastIndex && newIndex == 0) true
-                                                    else if (oldIndex == 0 && newIndex == MusicPlayerManager.songs.lastIndex) false
-                                                    else newIndex >= oldIndex
-                                                } else true
+                                                val isNext = MusicPlayerManager.lastTransitionForward
 
                                                 if (isNext) {
                                                     (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
@@ -1276,8 +1238,9 @@ private fun BottomNavBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            .height(56.dp)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         NavSegment(stringResource(R.string.artists), Icons.Rounded.Person, Modifier.weight(1f), onArtists)
@@ -1302,22 +1265,24 @@ private fun NavSegment(
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(horizontal = 6.dp)
             ) {
                 if (icon != null) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(18.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.5.sp),
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
+                    softWrap = false,
                     overflow = TextOverflow.Ellipsis
                 )
             }
@@ -1333,7 +1298,7 @@ private fun CollapsedSearchPill(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp),
+            .height(52.dp),
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
         onClick = onClick

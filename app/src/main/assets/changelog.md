@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.1
+
+### QOL & Fixes
+- Lyrics support added (LRCmux)
+- Fixes and optimization.
+- Bug fixes and visual polish.
+
 ## 1.3.0
 
 ### Compatibility

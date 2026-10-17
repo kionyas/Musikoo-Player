@@ -4,6 +4,7 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -31,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -58,6 +60,12 @@ fun ExpressivePlayButton(
     val actualHeight = size ?: height
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
+
+    val popScale by animateFloatAsState(
+        targetValue = if (pressed) 0.90f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "playPop"
+    )
 
     val targetCorner = if (isPlaying) playingCorner else actualHeight / 2
     val targetWidth = if (isPlaying) actualWidth else actualHeight
@@ -89,7 +97,12 @@ fun ExpressivePlayButton(
 
     Surface(
         onClick = onClick,
-        modifier = modifier.size(width = currentWidth, height = currentHeight),
+        modifier = modifier
+            .size(width = currentWidth, height = currentHeight)
+            .graphicsLayer {
+                scaleX = popScale
+                scaleY = popScale
+            },
         shape = RoundedCornerShape(corner),
         color = containerColor,
         contentColor = contentColor,

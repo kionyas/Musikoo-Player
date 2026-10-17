@@ -48,6 +48,15 @@ object MusicPlayerManager {
 
     /** Shuffle and repeat mode (saved between launches). */
     var shuffleOn by mutableStateOf(false)
+
+    /** Playback speed, cycled from the Speed pill. */
+    var playbackSpeed by mutableFloatStateOf(1f)
+        private set
+
+    /** Direction of the last track change, used by the cover animation. */
+    var lastTransitionForward: Boolean = true
+        private set
+    private var lastTransitionIndex: Int = -1
     var repeatState by mutableIntStateOf(Player.REPEAT_MODE_OFF)
 
     private var resumeAfterTagEdit: Pair<Long, Boolean>? = null
@@ -113,6 +122,15 @@ object MusicPlayerManager {
                                 exoPlayer?.let { player ->
                                     val newIndex = player.currentMediaItemIndex
                                     if (newIndex in songs.indices) {
+                                        // Real direction of the move, taken from the player (shuffle included)
+                                        val old = lastTransitionIndex
+                                        lastTransitionForward = when {
+                                            old < 0 -> true
+                                            old == songs.lastIndex && newIndex == 0 -> true
+                                            old == 0 && newIndex == songs.lastIndex -> false
+                                            else -> newIndex >= old
+                                        }
+                                        lastTransitionIndex = newIndex
                                         currentSongIndex = newIndex
                                         val song = songs[newIndex]
                                         trackDuration = if (song.duration > 0) song.duration.toFloat() else 100f
@@ -443,6 +461,19 @@ object MusicPlayerManager {
     }
 
     // ---------- shuffle and repeat ----------
+
+    /** 1x -> 1.25x -> 1.5x -> 2x -> 0.75x -> 1x. */
+    fun cycleSpeed() {
+        val next = when (playbackSpeed) {
+            1f -> 1.25f
+            1.25f -> 1.5f
+            1.5f -> 2f
+            2f -> 0.75f
+            else -> 1f
+        }
+        playbackSpeed = next
+        exoPlayer?.setPlaybackSpeed(next)
+    }
 
     fun toggleShuffle() {
         shuffleOn = !shuffleOn

@@ -332,9 +332,9 @@ fun AlbumDetailScreen(
                         }
                     },
                 shape = CircleShape,
-                color = glassFill(),
+                color = MaterialTheme.colorScheme.surfaceContainer,
                 border = glassStroke(),
-                tonalElevation = 2.dp
+                tonalElevation = 3.dp
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
@@ -346,22 +346,29 @@ fun AlbumDetailScreen(
             }
 
             Surface(
-                shape = RoundedCornerShape(32.dp),
-                color = glassFill(),
-                border = glassStroke()
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                border = glassStroke(),
+                tonalElevation = 3.dp
             ) {
                 if (isSelecting) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text(
-                            text = "${selectedSongIds.size}",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ) {
+                            Text(
+                                text = "${selectedSongIds.size}",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                        }
                         IconButton(
                             onClick = {
                                 selectedSongIds = if (selectedSongIds.size == albumSongs.size) emptySet() else albumSongs.map { it.id }.toSet()
@@ -411,17 +418,17 @@ fun AlbumDetailScreen(
                     }
                 } else {
                     Column(
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = 22.dp, vertical = 6.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Box(
                             modifier = Modifier
-                                .width(28.dp)
-                                .height(3.dp)
+                                .width(32.dp)
+                                .height(4.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(3.dp))
                         Text(
                             text = albumName.uppercase(),
                             style = MaterialTheme.typography.labelMedium,
@@ -439,9 +446,9 @@ fun AlbumDetailScreen(
                     .size(44.dp)
                     .bounceClickable { onQueueClick() },
                 shape = CircleShape,
-                color = glassFill(),
+                color = MaterialTheme.colorScheme.surfaceContainer,
                 border = glassStroke(),
-                tonalElevation = 2.dp
+                tonalElevation = 3.dp
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(

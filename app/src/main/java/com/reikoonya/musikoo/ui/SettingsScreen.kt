@@ -151,24 +151,24 @@ fun SettingsScreen(
 
                     SettingsCardItem(
                         icon = Icons.Rounded.AutoAwesome,
-                        title = stringResource(R.string.interface_style),
-                        description = "Current style: ${
+                        title = "Background",
+                        description = "Current: ${
                             when (uiStyle) {
-                                UiStyle.CLASSIC -> "Material 3"
-                                UiStyle.EXPENSIVE -> "Expensive"
+                                UiStyle.CLASSIC -> "Solid"
+                                UiStyle.EXPENSIVE -> "Cover"
                             }
                         }"
                     )
 
                     StyleOptionCard(
-                        title = "Material 3",
-                        description = "Classic design: solid surface containers",
+                        title = "Solid",
+                        description = "Solid material background",
                         selected = uiStyle == UiStyle.CLASSIC,
                         onClick = { onUiStyleChange(UiStyle.CLASSIC) }
                     )
                     StyleOptionCard(
-                        title = "Expensive",
-                        description = "Sleek interface with floating pills and native blur",
+                        title = "Cover",
+                        description = "Dynamic blur by the cover",
                         selected = uiStyle == UiStyle.EXPENSIVE,
                         onClick = { onUiStyleChange(UiStyle.EXPENSIVE) }
                     )
