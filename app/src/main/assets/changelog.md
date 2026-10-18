@@ -2,6 +2,12 @@
 
 ## 1.3.1
 
+### Fixes
+- Added LRClib, now more songs will show lyrics.
+- Visual polish.
+
+## 1.3.1
+
 ### QOL & Fixes
 - Lyrics support added (LRCmux)
 - Fixes and optimization.

@@ -1,5 +1,9 @@
 package com.reikoonya.musikoo.ui
 
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.SizeTransform
+import androidx.compose.ui.unit.IntSize
 import android.app.Activity
 import android.content.Context
 import android.widget.Toast
@@ -381,10 +385,25 @@ fun PlayerScreen(
                     .fillMaxWidth()
                     .weight(1f),
                 transitionSpec = {
-                    val enter = spring<Float>(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow)
-                    val exit = tween<Float>(durationMillis = 200, easing = FastOutSlowInEasing)
-                    (fadeIn(animationSpec = tween(300)) + scaleIn(initialScale = 0.94f, animationSpec = enter))
-                        .togetherWith(fadeOut(animationSpec = exit) + scaleOut(targetScale = 1.04f, animationSpec = exit))
+                    val easing = FastOutSlowInEasing
+                    val sizeSpec = tween<IntSize>(durationMillis = 480, easing = easing)
+                    if (targetState) {
+                        // Lyrics take over: they rise gently and appear just after the cover starts leaving
+                        (fadeIn(animationSpec = tween(420, delayMillis = 120, easing = easing)) +
+                            slideInVertically(animationSpec = tween(480, easing = easing)) { it / 10 })
+                            .togetherWith(
+                                fadeOut(animationSpec = tween(220, easing = easing)) +
+                                    scaleOut(targetScale = 0.92f, animationSpec = tween(320, easing = easing))
+                            )
+                    } else {
+                        // Back to the cover: the cover grows back in while the lyrics sink and fade
+                        (fadeIn(animationSpec = tween(420, delayMillis = 120, easing = easing)) +
+                            scaleIn(initialScale = 0.92f, animationSpec = tween(480, easing = easing)))
+                            .togetherWith(
+                                fadeOut(animationSpec = tween(200, easing = easing)) +
+                                    slideOutVertically(animationSpec = tween(360, easing = easing)) { it / 10 }
+                            )
+                    }.using(SizeTransform(clip = false) { _, _ -> sizeSpec })
                 },
                 label = "PlayerMorph"
             ) { isLyrics ->
