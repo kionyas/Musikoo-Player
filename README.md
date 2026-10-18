@@ -24,7 +24,9 @@
 - Style, Color, Icon customization!!
 <img width="2400" height="2400" alt="collage_7" src="https://github.com/user-attachments/assets/8f5bff01-3f28-4b7b-bb2e-9be227bd6399" />
 
+## Installation
+- Download APK from https://github.com/kionyas/Musikoo-Player/releases/latest
+- Install and enjoy!
 
-
-## ★ Enjoy ★
+t.me/reikoonya1
 
