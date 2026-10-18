@@ -28,5 +28,5 @@
 - Download APK from https://github.com/kionyas/Musikoo-Player/releases/latest
 - Install and enjoy!
 
-t.me/reikoonya1
+- https://t.me/reikoonya1
 
