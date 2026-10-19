@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.1
+## 1.3.2
 
 ### Fixes
 - Added LRClib, now more songs will show lyrics.
