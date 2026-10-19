@@ -1,5 +1,7 @@
 package com.reikoonya.musikoo.util
 
+import androidx.media3.common.C
+import androidx.media3.common.PlaybackException
 import com.reikoonya.musikoo.scrobble.Scrobbler
 import com.reikoonya.musikoo.widget.MusicWidget
 import android.app.PendingIntent
@@ -43,6 +45,10 @@ object MusicPlayerManager {
     var songs by mutableStateOf<List<Song>>(emptyList())
     var currentSongIndex by mutableIntStateOf(0)
     var isPlayingState by mutableStateOf(false)
+
+    /** Set when the app is opened from the media notification: MainActivity then goes straight to the player. */
+    var pendingOpenPlayer by mutableStateOf(false)
+    const val EXTRA_OPEN_PLAYER = "open_player"
     var currentPosition by mutableFloatStateOf(0f)
     var trackDuration by mutableFloatStateOf(100f)
 
@@ -79,6 +85,7 @@ object MusicPlayerManager {
 
             val intent = Intent(appCtx, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra(EXTRA_OPEN_PLAYER, true)
             }
             val pendingIntent = PendingIntent.getActivity(
                 appCtx,
@@ -90,6 +97,8 @@ object MusicPlayerManager {
             exoPlayer = ExoPlayer.Builder(appCtx)
                 .setAudioAttributes(AudioAttributes.DEFAULT, /* handleAudioFocus = */ true)
                 .setHandleAudioBecomingNoisy(true)
+                // Keep the CPU awake while playing, so the track does not stall with the screen off
+                .setWakeMode(C.WAKE_MODE_LOCAL)
                 .build()
                 .apply {
                     shuffleModeEnabled = shuffleOn
@@ -100,6 +109,17 @@ object MusicPlayerManager {
                                 if (duration > 0) {
                                     trackDuration = duration.toFloat()
                                 }
+                            }
+
+                            override fun onPlayerError(error: PlaybackException) {
+                                // Do not stay dead after an error: re-prepare the current item at the same position
+                                exoPlayer?.let { p ->
+                                    val index = p.currentMediaItemIndex.coerceAtLeast(0)
+                                    val position = p.currentPosition
+                                    p.prepare()
+                                    p.seekTo(index, position)
+                                }
+                                isPlayingState = false
                             }
 
                             override fun onIsPlayingChanged(playing: Boolean) {
@@ -411,6 +431,9 @@ object MusicPlayerManager {
                 player.pause()
                 false
             } else {
+                // Recover from an idle or failed player, and restart a finished track from the beginning
+                if (player.playerError != null || player.playbackState == Player.STATE_IDLE) player.prepare()
+                if (player.playbackState == Player.STATE_ENDED) player.seekTo(0)
                 player.play()
                 true
             }

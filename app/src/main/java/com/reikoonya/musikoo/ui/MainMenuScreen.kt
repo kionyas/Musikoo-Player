@@ -1,5 +1,9 @@
 package com.reikoonya.musikoo.ui
 
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.material.icons.rounded.*
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -1090,12 +1094,34 @@ fun MainMenuScreen(
                                 )
                             }
 
-                            WavyProgress(
-                                progress = progress,
-                                isPlaying = MusicPlayerManager.isPlayingState,
-                                modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp),
-                                activeColor = MaterialTheme.colorScheme.primary
-                            )
+                            // Tap or drag the bar to seek
+                            var miniBarWidthPx by remember { mutableFloatStateOf(1f) }
+                            fun seekMiniBar(x: Float) {
+                                val d = MusicPlayerManager.trackDuration
+                                if (d > 0f) {
+                                    MusicPlayerManager.seekTo(((x / miniBarWidthPx).coerceIn(0f, 1f) * d).toLong())
+                                }
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .padding(start = 24.dp, end = 24.dp, bottom = 8.dp)
+                                    .fillMaxWidth()
+                                    .onSizeChanged { miniBarWidthPx = it.width.toFloat().coerceAtLeast(1f) }
+                                    .pointerInput(Unit) { detectTapGestures { seekMiniBar(it.x) } }
+                                    .pointerInput(Unit) {
+                                        detectHorizontalDragGestures { change, _ ->
+                                            change.consume()
+                                            seekMiniBar(change.position.x)
+                                        }
+                                    }
+                            ) {
+                                WavyProgress(
+                                    progress = progress,
+                                    isPlaying = MusicPlayerManager.isPlayingState,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    activeColor = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     }
                 }

@@ -284,7 +284,7 @@ fun TagEditorDialog(
 
         Box(modifier = Modifier.fillMaxSize()) {
             // Full-bleed background, same as the other screens
-            ArtBackdrop(art = shownCover, topScrim = 0.55f, midScrim = 0.82f)
+            Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
 
             // Scrolling content runs underneath the floating header
             LazyColumn(
@@ -432,6 +432,9 @@ fun TagEditorDialog(
                 }
 
                 Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp),
                     shape = RoundedCornerShape(32.dp),
                     color = glassFill(),
                     border = glassStroke()

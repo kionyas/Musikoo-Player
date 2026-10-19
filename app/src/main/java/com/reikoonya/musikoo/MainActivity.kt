@@ -89,6 +89,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Scrobbler.init(this)
+        MusicPlayerManager.pendingOpenPlayer = intent?.getBooleanExtra(MusicPlayerManager.EXTRA_OPEN_PLAYER, false) == true
         checkAndRequestAudioPermission()
         audioGranted = hasAudioPermission()
 
@@ -185,6 +186,14 @@ class MainActivity : ComponentActivity() {
                     fun navigateTo(screen: Screen) {
                         if (currentScreen != screen) {
                             backStack.add(screen)
+                        }
+                    }
+
+                    // Opened from the media notification: go straight to the player
+                    LaunchedEffect(MusicPlayerManager.pendingOpenPlayer, songs.size) {
+                        if (MusicPlayerManager.pendingOpenPlayer && songs.isNotEmpty()) {
+                            navigateTo(Screen.Player(MusicPlayerManager.currentSongIndex.coerceIn(songs.indices)))
+                            MusicPlayerManager.pendingOpenPlayer = false
                         }
                     }
 
@@ -478,6 +487,14 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra(MusicPlayerManager.EXTRA_OPEN_PLAYER, false)) {
+            MusicPlayerManager.pendingOpenPlayer = true
         }
     }
 
