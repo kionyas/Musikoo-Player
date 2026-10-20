@@ -1,5 +1,6 @@
 package com.reikoonya.musikoo.ui
 
+import com.reikoonya.musikoo.ui.components.rememberPersistentLazyListState
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -131,6 +132,7 @@ fun AlbumDetailScreen(
         ArtBackdrop(art = albumArt ?: nowPlayingArt(), topScrim = 0.55f, midScrim = 0.82f)
 
         LazyColumn(
+            state = rememberPersistentLazyListState("album:$albumName"),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(top = 92.dp, bottom = 24.dp, start = 16.dp, end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)

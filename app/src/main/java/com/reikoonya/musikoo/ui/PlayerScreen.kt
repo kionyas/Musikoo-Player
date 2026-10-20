@@ -1,5 +1,6 @@
 package com.reikoonya.musikoo.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.SizeTransform
@@ -114,6 +115,8 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun PlayerScreen(
+    onAlbumClick: (String) -> Unit = {},
+    onArtistClick: (String) -> Unit = {},
     songs: List<Song>,
     initialSongIndex: Int,
     onQueueClick: (() -> Unit)? = null,
@@ -307,21 +310,42 @@ fun PlayerScreen(
                     width = 42.dp,
                     height = 42.dp,
                     iconSize = 24.dp,
-                    shape = CircleShape
+                    shape = CircleShape,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f)
                 )
 
                 Surface(
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
-                    modifier = Modifier.bounceClickable { onBackClick() }
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp)
+                        .bounceClickable {
+                            currentSong?.album?.takeIf { it.isNotBlank() }?.let { album ->
+                                onAlbumClick(album)
+                            }
+                        }
                 ) {
-                    Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp), contentAlignment = Alignment.Center) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Box(
                             modifier = Modifier
                                 .width(34.dp)
                                 .height(4.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+                        )
+                        // Album name on one line, scrolls horizontally when it is too long
+                        Text(
+                            text = currentSong?.album?.takeIf { it.isNotBlank() } ?: "",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.basicMarquee()
                         )
                     }
                 }
@@ -334,7 +358,8 @@ fun PlayerScreen(
                         width = 42.dp,
                         height = 42.dp,
                         iconSize = 22.dp,
-                        shape = CircleShape
+                        shape = CircleShape,
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f)
                     )
                     DropdownMenu(
                         expanded = menuExpanded,
@@ -445,7 +470,13 @@ fun PlayerScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.basicMarquee()
+                                    modifier = Modifier
+                                        .basicMarquee()
+                                        .then(
+                                            if (currentSong?.artist != null) {
+                                                Modifier.clickable { onArtistClick(currentSong.artist) }
+                                            } else Modifier
+                                        )
                                 )
                             }
                         }
@@ -461,78 +492,84 @@ fun PlayerScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .weight(1f, fill = false)
-                                .fillMaxHeight(0.85f)
-                                .aspectRatio(1f)
-                                .graphicsLayer {
-                                    scaleX = coverSqueeze.value * scrubbingScale
-                                    scaleY = coverSqueeze.value * scrubbingScale
-                                    translationX = coverDrag * 0.35f
-                                }
-                                .onSizeChanged { coverWidthPx = it.width.toFloat().coerceAtLeast(1f) }
-                                .pointerInput(Unit) {
-                                    detectTapGestures(
-                                        onDoubleTap = { offset ->
-                                            val isForward = offset.x >= coverWidthPx / 2f
-                                            val player = MusicPlayerManager.exoPlayer
-                                            if (player != null) {
-                                                val duration = player.duration.takeIf { it > 0 } ?: Long.MAX_VALUE
-                                                val target = (player.currentPosition + if (isForward) 10_000L else -10_000L).coerceIn(0L, duration)
-                                                MusicPlayerManager.seekTo(target)
-                                            }
-                                            doubleTapFeedback = isForward
-                                            feedbackTrigger = System.currentTimeMillis()
-                                            coverScope.launch {
-                                                coverSqueeze.animateTo(0.88f, tween(90))
-                                                coverSqueeze.animateTo(1f, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium))
-                                            }
-                                        }
-                                    )
-                                }
-                                .pointerInput(Unit) {
-                                    detectHorizontalDragGestures(
-                                        onDragStart = { coverDrag = 0f },
-                                        onHorizontalDrag = { change, amount ->
-                                            change.consume()
-                                            coverDrag += amount
-                                        },
-                                        onDragEnd = {
-                                            if (coverDrag < -swipeThresholdPx) MusicPlayerManager.skipNext()
-                                            else if (coverDrag > swipeThresholdPx) MusicPlayerManager.skipPrevious()
-                                            coverDrag = 0f
-                                        },
-                                        onDragCancel = { coverDrag = 0f }
-                                    )
-                                }
-                                .clip(RoundedCornerShape(scrubbingCorner))
-                                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                                .weight(1f)
+                                .fillMaxWidth(),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (currentSong?.albumArt != null) {
-                                Image(bitmap = currentSong.albumArt.asImageBitmap(), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                            } else {
-                                Icon(Icons.Rounded.MusicNote, null, modifier = Modifier.size(96.dp), tint = accent)
-                            }
-
                             Box(
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(20.dp),
-                                contentAlignment = if (doubleTapFeedback == true) Alignment.CenterEnd else Alignment.CenterStart
-                            ) {
-                                if (doubleTapFeedback != null) {
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f),
-                                        tonalElevation = 6.dp
-                                    ) {
-                                        Text(
-                                            text = if (doubleTapFeedback == true) "+10s" else "-10s",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = accent,
-                                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                                    .fillMaxHeight(0.85f)
+                                    .aspectRatio(1f)
+                                    .graphicsLayer {
+                                        scaleX = coverSqueeze.value * scrubbingScale
+                                        scaleY = coverSqueeze.value * scrubbingScale
+                                        translationX = coverDrag * 0.35f
+                                    }
+                                    .onSizeChanged { coverWidthPx = it.width.toFloat().coerceAtLeast(1f) }
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onDoubleTap = { offset ->
+                                                val isForward = offset.x >= coverWidthPx / 2f
+                                                val player = MusicPlayerManager.exoPlayer
+                                                if (player != null) {
+                                                    val duration = player.duration.takeIf { it > 0 } ?: Long.MAX_VALUE
+                                                    val target = (player.currentPosition + if (isForward) 10_000L else -10_000L).coerceIn(0L, duration)
+                                                    MusicPlayerManager.seekTo(target)
+                                                }
+                                                doubleTapFeedback = isForward
+                                                feedbackTrigger = System.currentTimeMillis()
+                                                coverScope.launch {
+                                                    coverSqueeze.animateTo(0.88f, tween(90))
+                                                    coverSqueeze.animateTo(1f, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium))
+                                                }
+                                            }
                                         )
+                                    }
+                                    .pointerInput(Unit) {
+                                        detectHorizontalDragGestures(
+                                            onDragStart = { coverDrag = 0f },
+                                            onHorizontalDrag = { change, amount ->
+                                                change.consume()
+                                                coverDrag += amount
+                                            },
+                                            onDragEnd = {
+                                                if (coverDrag < -swipeThresholdPx) MusicPlayerManager.skipNext()
+                                                else if (coverDrag > swipeThresholdPx) MusicPlayerManager.skipPrevious()
+                                                coverDrag = 0f
+                                            },
+                                            onDragCancel = { coverDrag = 0f }
+                                        )
+                                    }
+                                    .clip(RoundedCornerShape(scrubbingCorner))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (currentSong?.albumArt != null) {
+                                    Image(bitmap = currentSong.albumArt.asImageBitmap(), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                                } else {
+                                    Icon(Icons.Rounded.MusicNote, null, modifier = Modifier.size(96.dp), tint = accent)
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(20.dp),
+                                    contentAlignment = if (doubleTapFeedback == true) Alignment.CenterEnd else Alignment.CenterStart
+                                ) {
+                                    if (doubleTapFeedback != null) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f),
+                                            tonalElevation = 6.dp
+                                        ) {
+                                            Text(
+                                                text = if (doubleTapFeedback == true) "+10s" else "-10s",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = accent,
+                                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -545,7 +582,20 @@ fun PlayerScreen(
                         ) {
                             Column(Modifier.weight(1f)) {
                                 Text(currentSong?.title ?: strSelectTrack, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.basicMarquee())
-                                Text(currentSong?.artist ?: strUnknownArtist, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.basicMarquee())
+                                Text(
+                                    text = currentSong?.artist ?: strUnknownArtist,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier
+                                        .basicMarquee()
+                                        .then(
+                                            if (currentSong?.artist != null) {
+                                                Modifier.clickable { onArtistClick(currentSong.artist) }
+                                            } else Modifier
+                                        )
+                                )
                             }
                             if (currentSong != null) {
                                 Surface(

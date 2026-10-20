@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.3
+
+### QOL & Fixes
+- Fixed app goes into sleep mode and player dies.
+- Fixed background in Edit Tags menu.
+- Visual polish
+- Some minor fixes
+
 ## 1.3.2
 
 ### Fixes

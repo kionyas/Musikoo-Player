@@ -1,5 +1,6 @@
 package com.reikoonya.musikoo.ui
 
+import com.reikoonya.musikoo.ui.components.rememberPersistentLazyListState
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -128,6 +129,7 @@ fun ArtistDetailScreen(
 
         // List fills entire screen and scrolls underneath floating top pill
         LazyColumn(
+            state = rememberPersistentLazyListState("artist:$artistName"),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(top = 92.dp, bottom = 24.dp, start = 16.dp, end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)

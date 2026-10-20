@@ -1,5 +1,6 @@
 package com.reikoonya.musikoo.ui
 
+import com.reikoonya.musikoo.ui.components.rememberPersistentLazyGridState
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -87,6 +88,7 @@ fun AlbumsScreen(
         ArtBackdrop(art = nowPlayingArt(), topScrim = 0.55f, midScrim = 0.82f)
 
         LazyVerticalGrid(
+            state = rememberPersistentLazyGridState("albums"),
             columns = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(top = 92.dp, bottom = 24.dp, start = 16.dp, end = 16.dp),

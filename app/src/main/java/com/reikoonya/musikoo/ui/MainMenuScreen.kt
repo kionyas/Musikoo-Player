@@ -1,9 +1,13 @@
 package com.reikoonya.musikoo.ui
 
+import androidx.compose.material.icons.rounded.Replay10
+import androidx.compose.material.icons.rounded.Forward10
+import com.reikoonya.musikoo.ui.components.rememberPersistentLazyGridState
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.material.icons.rounded.*
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -298,6 +302,7 @@ fun MainMenuScreen(
     ) {
         // Main Vertical Grid
         if (mainMode == MainMode.Library) LazyVerticalGrid(
+            state = rememberPersistentLazyGridState("main"),
             columns = GridCells.Fixed(3),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
@@ -950,97 +955,81 @@ fun MainMenuScreen(
                         border = glassStroke(),
                         tonalElevation = 2.dp
                     ) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
+                                modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    modifier = Modifier.weight(1f)
+                                // 1. Album Art
+                                Surface(
+                                    modifier = Modifier
+                                        .size(52.dp)
+                                        .clip(RoundedCornerShape(20.dp)),
+                                    color = MaterialTheme.colorScheme.primaryContainer
                                 ) {
-                                    Surface(
-                                        modifier = Modifier
-                                            .size(52.dp)
-                                            .clip(RoundedCornerShape(22.dp)),
-                                        color = MaterialTheme.colorScheme.primaryContainer
-                                    ) {
-                                        AnimatedContent(
-                                            targetState = currentSong,
-                                            transitionSpec = {
-                                                val isNext = MusicPlayerManager.lastTransitionForward
-
-                                                if (isNext) {
-                                                    (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
-                                                        slideOutHorizontally { width -> -width } + fadeOut()
-                                                    )
-                                                } else {
-                                                    (slideInHorizontally { width -> -width } + fadeIn()).togetherWith(
-                                                        slideOutHorizontally { width -> width } + fadeOut()
-                                                    )
-                                                }
-                                            },
-                                            label = "MiniCoverSlide"
-                                        ) { song ->
-                                            if (song?.albumArt != null) {
-                                                Image(
-                                                    bitmap = song.albumArt.asImageBitmap(),
-                                                    contentDescription = null,
-                                                    modifier = Modifier.fillMaxSize(),
-                                                    contentScale = ContentScale.Crop
+                                    AnimatedContent(
+                                        targetState = currentSong,
+                                        transitionSpec = {
+                                            val isNext = MusicPlayerManager.lastTransitionForward
+                                            if (isNext) {
+                                                (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
+                                                    slideOutHorizontally { width -> -width } + fadeOut()
                                                 )
                                             } else {
-                                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                                    Icon(
-                                                        imageVector = Icons.Rounded.MusicNote,
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.primary
-                                                    )
-                                                }
+                                                (slideInHorizontally { width -> -width } + fadeIn()).togetherWith(
+                                                    slideOutHorizontally { width -> width } + fadeOut()
+                                                )
                                             }
-                                        }
-                                    }
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = currentSong.title,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                        ) {
-                                            Text(
-                                                text = currentSong.artist,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                                modifier = Modifier.weight(1f, fill = false)
+                                        },
+                                        label = "MiniCoverSlide"
+                                    ) { song ->
+                                        if (song?.albumArt != null) {
+                                            Image(
+                                                bitmap = song.albumArt.asImageBitmap(),
+                                                contentDescription = null,
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
                                             )
-                                            Text(
-                                                text = "•",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                            )
-                                            Text(
-                                                text = "${formatTime(MusicPlayerManager.currentPosition.toLong())} / ${formatTime(MusicPlayerManager.trackDuration.toLong())}",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = MaterialTheme.colorScheme.primary,
-                                                maxLines = 1
-                                            )
+                                        } else {
+                                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.MusicNote,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
                                         }
                                     }
                                 }
 
+                                // 2. Title & Artist
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Text(
+                                        text = currentSong.title,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        modifier = Modifier.basicMarquee()
+                                    )
+                                    Text(
+                                        text = currentSong.artist,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        modifier = Modifier.basicMarquee()
+                                    )
+                                }
+
+                                // 3. Controls: Previous, Play/Pause, Next
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -1049,52 +1038,38 @@ fun MainMenuScreen(
                                         Icon(
                                             imageVector = Icons.Rounded.SkipPrevious,
                                             contentDescription = stringResource(R.string.previous),
-                                            tint = MaterialTheme.colorScheme.onSurface
+                                            tint = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.size(24.dp)
                                         )
                                     }
                                     ExpressivePlayButton(
                                         isPlaying = MusicPlayerManager.isPlayingState,
-                                        onClick = {
-                                            MusicPlayerManager.togglePlayPause()
-                                        },
+                                        onClick = { MusicPlayerManager.togglePlayPause() },
                                         containerColor = MaterialTheme.colorScheme.primary,
                                         contentColor = MaterialTheme.colorScheme.onPrimary,
                                         width = 44.dp,
                                         height = 44.dp,
-                                        iconSize = 24.dp,
+                                        iconSize = 22.dp,
                                         playingCorner = 16.dp
                                     )
                                     BounceIconButton(onClick = { MusicPlayerManager.skipNext() }) {
                                         Icon(
                                             imageVector = Icons.Rounded.SkipNext,
                                             contentDescription = stringResource(R.string.next),
-                                            tint = MaterialTheme.colorScheme.onSurface
+                                            tint = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.size(24.dp)
                                         )
                                     }
                                 }
                             }
 
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 24.dp, vertical = 2.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = formatTime(MusicPlayerManager.currentPosition.toLong()),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    text = formatTime(MusicPlayerManager.trackDuration.toLong()),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                            Spacer(modifier = Modifier.height(10.dp))
 
-                            // Tap or drag the bar to seek
+                            // 4. Draggable Wavy Slider
+                            val progress = if (MusicPlayerManager.trackDuration > 0f) {
+                                (MusicPlayerManager.currentPosition / MusicPlayerManager.trackDuration).coerceIn(0f, 1f)
+                            } else 0f
+
                             var miniBarWidthPx by remember { mutableFloatStateOf(1f) }
                             fun seekMiniBar(x: Float) {
                                 val d = MusicPlayerManager.trackDuration
@@ -1104,7 +1079,6 @@ fun MainMenuScreen(
                             }
                             Box(
                                 modifier = Modifier
-                                    .padding(start = 24.dp, end = 24.dp, bottom = 8.dp)
                                     .fillMaxWidth()
                                     .onSizeChanged { miniBarWidthPx = it.width.toFloat().coerceAtLeast(1f) }
                                     .pointerInput(Unit) { detectTapGestures { seekMiniBar(it.x) } }
@@ -1118,8 +1092,9 @@ fun MainMenuScreen(
                                 WavyProgress(
                                     progress = progress,
                                     isPlaying = MusicPlayerManager.isPlayingState,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    activeColor = MaterialTheme.colorScheme.primary
+                                    modifier = Modifier.fillMaxWidth().height(16.dp),
+                                    activeColor = MaterialTheme.colorScheme.primary,
+                                    trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.16f)
                                 )
                             }
                         }

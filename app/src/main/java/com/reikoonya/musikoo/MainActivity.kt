@@ -73,6 +73,7 @@ sealed class Screen {
     object About : Screen()
     object Queue : Screen()
     data class Player(val songIndex: Int) : Screen()
+    data class ComposerDetail(val composerName: String) : Screen()
 }
 
 class MainActivity : ComponentActivity() {
@@ -272,7 +273,7 @@ class MainActivity : ComponentActivity() {
                         transitionSpec = {
                             val isBack = backStack.indexOf(targetState) < backStack.indexOf(initialState)
                             val isTopDropSheet = { s: Screen -> s is Screen.Settings || s is Screen.About || s is Screen.Albums || s is Screen.AlbumDetail }
-                            val isBottomSlideSheet = { s: Screen -> s is Screen.Player || s is Screen.Queue || s is Screen.Artists || s is Screen.ArtistDetail || s is Screen.Songs || s is Screen.PlaylistDetail }
+                            val isBottomSlideSheet = { s: Screen -> s is Screen.Player || s is Screen.Queue || s is Screen.ComposerDetail || s is Screen.Artists || s is Screen.ArtistDetail || s is Screen.Songs || s is Screen.PlaylistDetail }
                             when {
                                 (initialState is Screen.MainMenu && isBottomSlideSheet(targetState)) -> {
                                     (slideInVertically { height -> height } + fadeIn()) togetherWith
@@ -410,6 +411,8 @@ class MainActivity : ComponentActivity() {
                                 PlayerScreen(
                                     songs = songs,
                                     initialSongIndex = screen.songIndex,
+                                    onArtistClick = { artistName -> navigateTo(Screen.ArtistDetail(artistName)) },
+                                    onAlbumClick = { albumName -> navigateTo(Screen.AlbumDetail(albumName)) },
                                     onQueueClick = { navigateTo(Screen.Queue) },
                                     onSongDeleted = { deleted ->
                                         songs = songs.filter { it.id != deleted.id }
@@ -420,6 +423,17 @@ class MainActivity : ComponentActivity() {
                                 ) {
                                     backStack.removeAll { it !is Screen.MainMenu }
                                 }
+                            }
+                            is Screen.ComposerDetail -> {
+                                val composerSongs = songs.filter { it.composer.equals(screen.composerName, ignoreCase = true) }
+                                SongsScreen(
+                                    songs = composerSongs,
+                                    memoryKey = "composer:${screen.composerName}",
+                                    onSongClick = { index ->
+                                        MusicPlayerManager.playSong(composerSongs, index)
+                                        navigateTo(Screen.Player(index))
+                                    },
+                                ) { popBackStack() }
                             }
                             is Screen.Queue -> {
                                 QueueScreen(

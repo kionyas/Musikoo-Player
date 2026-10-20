@@ -1,5 +1,6 @@
 package com.reikoonya.musikoo.ui
 
+import com.reikoonya.musikoo.ui.components.rememberPersistentLazyListState
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -46,6 +47,7 @@ import com.reikoonya.musikoo.util.formatTime
 fun SongsScreen(
     songs: List<Song>,
     onSongClick: (Int) -> Unit,
+    memoryKey: String = "songs",
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -122,6 +124,7 @@ fun SongsScreen(
 
         // List fills entire screen and scrolls underneath floating top pill
         LazyColumn(
+            state = rememberPersistentLazyListState(memoryKey),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(top = 92.dp, bottom = 24.dp, start = 16.dp, end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)

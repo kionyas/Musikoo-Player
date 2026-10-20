@@ -388,10 +388,11 @@ fun TagEditorDialog(
                     item {
                         TagGroup(title = "Details") {
                             if (TagField.GENRE in fields) TagInput(TagField.GENRE)
-                            val numbers = listOf(TagField.YEAR, TagField.TRACK, TagField.DISC).filter { it in fields }
-                            if (numbers.isNotEmpty()) {
+                            if (TagField.YEAR in fields) TagInput(TagField.YEAR)
+                            val trackAndDisc = listOf(TagField.TRACK, TagField.DISC).filter { it in fields }
+                            if (trackAndDisc.isNotEmpty()) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    numbers.forEach { TagInput(it, Modifier.weight(1f)) }
+                                    trackAndDisc.forEach { TagInput(it, Modifier.weight(1f)) }
                                 }
                             }
                             if (TagField.COMMENT in fields) TagInput(TagField.COMMENT)
