@@ -1,13 +1,27 @@
 package com.reikoonya.musikoo.ui
 
+import com.reikoonya.musikoo.ui.components.AppLoadingIndicator
+import com.reikoonya.musikoo.ui.components.coverShapeOf
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import com.reikoonya.musikoo.ui.components.shapeOf
 import androidx.compose.material.icons.rounded.*
 import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -99,12 +113,27 @@ fun MainModeSwitch(mode: MainMode, onModeChange: (MainMode) -> Unit) {
                 modifier = Modifier.padding(start = 14.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = mode.label,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                // The chip grows/shrinks with the new label while the text slides in
+                AnimatedContent(
+                    targetState = mode,
+                    transitionSpec = {
+                        (slideInVertically(tween(320, easing = FastOutSlowInEasing)) { it } +
+                            fadeIn(tween(240, delayMillis = 60))) togetherWith
+                            (slideOutVertically(tween(240, easing = FastOutSlowInEasing)) { -it } +
+                                fadeOut(tween(120))) using
+                            SizeTransform(clip = false) { _, _ ->
+                                spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)
+                            }
+                    },
+                    label = "modeLabel"
+                ) { m ->
+                    Text(
+                        text = m.label,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
                 Spacer(modifier = Modifier.width(4.dp))
                 Icon(
                     imageVector = Icons.Rounded.KeyboardArrowDown,
@@ -117,8 +146,10 @@ fun MainModeSwitch(mode: MainMode, onModeChange: (MainMode) -> Unit) {
 
         AnimatedVisibility(
             visible = expanded,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
+            enter = expandVertically(spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)) +
+                fadeIn(tween(220, delayMillis = 60)) + scaleIn(initialScale = 0.9f),
+            exit = shrinkVertically(tween(260, easing = FastOutSlowInEasing)) +
+                fadeOut(tween(140)) + scaleOut(targetScale = 0.9f)
         ) {
             Column(
                 modifier = Modifier.padding(top = 6.dp),
@@ -349,12 +380,12 @@ private fun HeroCard(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(36.dp),
+        shape = shapeOf(36.dp),
         color = MaterialTheme.colorScheme.primaryContainer,
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
             when {
-                loading -> CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                loading -> AppLoadingIndicator(size = 40.dp, color = MaterialTheme.colorScheme.onPrimaryContainer)
                 error != null -> Text(
                     text = error,
                     style = MaterialTheme.typography.bodyLarge,
@@ -438,7 +469,7 @@ private fun CoverBox(art: Bitmap?, size: androidx.compose.ui.unit.Dp, shape: and
 @Composable
 private fun ArtistCard(item: StatItem, art: Bitmap?) {
     Column(modifier = Modifier.width(128.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        CoverBox(art, 128.dp, CircleShape) {
+        CoverBox(art, 128.dp, coverShapeOf(20.dp)) {
             Icon(Icons.Rounded.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
         }
         Spacer(modifier = Modifier.height(10.dp))
@@ -454,7 +485,7 @@ private fun ArtistCard(item: StatItem, art: Bitmap?) {
 @Composable
 private fun AlbumCard(item: StatItem, art: Bitmap?) {
     Column(modifier = Modifier.width(150.dp)) {
-        CoverBox(art, 150.dp, RoundedCornerShape(32.dp)) {
+        CoverBox(art, 150.dp, coverShapeOf(20.dp)) {
             Icon(Icons.Rounded.MusicNote, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
         }
         Spacer(modifier = Modifier.height(10.dp))
@@ -468,7 +499,7 @@ private fun AlbumCard(item: StatItem, art: Bitmap?) {
 @Composable
 private fun TrackCard(item: StatItem, art: Bitmap?) {
     Column(modifier = Modifier.width(140.dp)) {
-        CoverBox(art, 140.dp, RoundedCornerShape(26.dp)) {
+        CoverBox(art, 140.dp, coverShapeOf(20.dp)) {
             Icon(Icons.Rounded.MusicNote, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp))
         }
         Spacer(modifier = Modifier.height(10.dp))
@@ -487,7 +518,7 @@ private fun TrackCard(item: StatItem, art: Bitmap?) {
 @Composable
 private fun ComposerCard(item: StatItem, art: Bitmap?) {
     Column(modifier = Modifier.width(118.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        CoverBox(art, 104.dp, CircleShape) {
+        CoverBox(art, 104.dp, coverShapeOf(16.dp)) {
             Text(
                 text = item.title.take(1).uppercase(),
                 style = MaterialTheme.typography.displaySmall,

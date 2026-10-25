@@ -1,5 +1,8 @@
 package com.reikoonya.musikoo.ui
 
+import com.reikoonya.musikoo.ui.components.coverShapeOf
+import com.reikoonya.musikoo.ui.components.TopPill
+import com.reikoonya.musikoo.ui.components.shapeOf
 import com.reikoonya.musikoo.ui.components.rememberPersistentLazyListState
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.foundation.Image
@@ -69,7 +72,7 @@ fun QueueScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(36.dp),
+                    shape = shapeOf(36.dp),
                     colors = CardDefaults.cardColors(containerColor = cardFill()),
                     border = glassStroke()
                 ) {
@@ -82,7 +85,7 @@ fun QueueScreen(
                     ) {
                         Surface(
                             modifier = Modifier.size(72.dp),
-                            shape = RoundedCornerShape(24.dp),
+                            shape = coverShapeOf(14.dp),
                             color = MaterialTheme.colorScheme.primaryContainer
                         ) {
                             if (currentSong?.albumArt != null) {
@@ -161,11 +164,11 @@ fun QueueScreen(
                         }
                         .offset { IntOffset(0, if (isDragging) dragOffset.roundToInt() else 0) }
                         .onSizeChanged { rowHeightPx = it.height.toFloat() }
-                        .clip(RoundedCornerShape(26.dp))
+                        .clip(shapeOf(26.dp))
                         .bounceClickable {
                             MusicPlayerManager.playQueueIndex(index)
                         },
-                    shape = RoundedCornerShape(26.dp),
+                    shape = shapeOf(26.dp),
                     color = when {
                         isDragging -> MaterialTheme.colorScheme.primaryContainer
                         isCurrent -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
@@ -188,7 +191,7 @@ fun QueueScreen(
                         Surface(
                             modifier = Modifier
                                 .size(52.dp)
-                                .clip(RoundedCornerShape(20.dp)),
+                                .clip(coverShapeOf(12.dp)),
                             color = MaterialTheme.colorScheme.surfaceContainer
                         ) {
                             if (song.albumArt != null) {
@@ -324,7 +327,7 @@ fun QueueScreen(
             Surface(
                 modifier = Modifier
                     .size(44.dp)
-                    .bounceClickable { onBackClick() },
+                    .bounceClickable(shape = CircleShape) { onBackClick() },
                 shape = CircleShape,
                 color = glassFill(),
                 border = glassStroke(),
@@ -339,33 +342,9 @@ fun QueueScreen(
                 }
             }
 
-            Surface(
-                shape = RoundedCornerShape(32.dp),
-                color = glassFill(),
-                border = glassStroke()
-            ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(28.dp)
-                            .height(3.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.up_next).uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
+            TopPill(
+                text = stringResource(R.string.up_next).uppercase()
+            )
 
             Spacer(modifier = Modifier.size(44.dp))
         }

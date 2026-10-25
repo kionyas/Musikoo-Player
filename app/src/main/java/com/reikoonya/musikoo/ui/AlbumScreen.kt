@@ -1,5 +1,8 @@
 package com.reikoonya.musikoo.ui
 
+import com.reikoonya.musikoo.ui.components.TopPill
+import com.reikoonya.musikoo.ui.components.expressiveBadgeShape
+import com.reikoonya.musikoo.ui.components.shapeOf
 import com.reikoonya.musikoo.ui.components.rememberPersistentLazyGridState
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.foundation.background
@@ -99,8 +102,8 @@ fun AlbumsScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .bounceCombinedClickable(onLongClick = { actionsAlbum = albumName }) { onAlbumClick(albumName) },
-                    shape = RoundedCornerShape(32.dp),
+                        .bounceCombinedClickable(shape = shapeOf(32.dp), onLongClick = { actionsAlbum = albumName }) { onAlbumClick(albumName) },
+                    shape = shapeOf(32.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = cardFill()
                     ),
@@ -114,7 +117,7 @@ fun AlbumsScreen(
                     ) {
                         Surface(
                             modifier = Modifier.size(80.dp),
-                            shape = RoundedCornerShape(24.dp),
+                            shape = expressiveBadgeShape(0),
                             color = MaterialTheme.colorScheme.primaryContainer
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -164,7 +167,7 @@ fun AlbumsScreen(
             Surface(
                 modifier = Modifier
                     .size(44.dp)
-                    .bounceClickable { onBackClick() },
+                    .bounceClickable(shape = CircleShape) { onBackClick() },
                 shape = CircleShape,
                 color = glassFill(),
                 border = glassStroke(),
@@ -179,33 +182,9 @@ fun AlbumsScreen(
                 }
             }
 
-            Surface(
-                shape = RoundedCornerShape(32.dp),
-                color = glassFill(),
-                border = glassStroke()
-            ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(28.dp)
-                            .height(3.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.albums_count, albums.size),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
+            TopPill(
+                text = stringResource(R.string.albums_count, albums.size)
+            )
 
             Spacer(modifier = Modifier.size(44.dp))
         }

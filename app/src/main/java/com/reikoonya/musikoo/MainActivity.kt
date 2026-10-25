@@ -1,5 +1,9 @@
 package com.reikoonya.musikoo
 
+import androidx.compose.animation.scaleOut
+import com.reikoonya.musikoo.ui.components.LoadingScreen
+import com.reikoonya.musikoo.ui.theme.FontChoice
+import com.reikoonya.musikoo.ui.theme.ShapeFamily
 import androidx.compose.material.icons.rounded.*
 import android.content.Intent
 import android.database.ContentObserver
@@ -34,6 +38,21 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDp
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,13 +64,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.reikoonya.musikoo.model.Song
 import com.reikoonya.musikoo.ui.*
 import com.reikoonya.musikoo.ui.ArtistsScreen
 import com.reikoonya.musikoo.ui.ArtistDetailScreen
 import com.reikoonya.musikoo.ui.theme.MusikooTheme
+import com.reikoonya.musikoo.ui.components.UpdateDialog
+import com.reikoonya.musikoo.util.UpdateManager
 import com.reikoonya.musikoo.util.AppIconManager
 import com.reikoonya.musikoo.util.AppIconMode
 import com.reikoonya.musikoo.util.MusicPlayerManager
@@ -97,6 +117,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             val styleContext = LocalContext.current
             var currentUiStyle by remember { mutableStateOf(UiStylePrefs.loadStyle(styleContext)) }
+            var currentShapeFamily by remember { mutableStateOf(UiStylePrefs.loadShapeFamily(styleContext)) }
+            var currentFontChoice by remember { mutableStateOf(UiStylePrefs.loadFontChoice(styleContext)) }
             var currentColorThemeMode by remember { mutableStateOf(UiStylePrefs.loadColorMode(styleContext)) }
             var currentAppIconMode by remember { mutableStateOf(AppIconManager.loadIconMode(styleContext)) }
 
@@ -105,14 +127,22 @@ class MainActivity : ComponentActivity() {
             MusikooTheme(
                 colorThemeMode = currentColorThemeMode,
                 uiStyle = currentUiStyle,
+                shapeFamily = currentShapeFamily,
+                fontChoice = currentFontChoice,
                 coverArt = currentPlayingSong?.albumArt
             ) {
+                // Check GitHub for a new release once per launch (at most every few hours) and show the dialog on top of any screen
+                LaunchedEffect(Unit) { UpdateManager.autoCheck(applicationContext) }
+                UpdateDialog()
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.surface,
                 ) {
                     val context = LocalContext.current
                     var songs by remember { mutableStateOf<List<Song>>(emptyList()) }
+                    // True until the first library scan finishes: shows the loading screen
+                    var libraryLoading by remember { mutableStateOf(true) }
                     var showNotificationPermissionDialog by remember { mutableStateOf(false) }
 
                     var libraryRefresh by remember { mutableIntStateOf(0) }
@@ -137,6 +167,7 @@ class MainActivity : ComponentActivity() {
                         if (libraryRefresh > 0) delay(400) // avoid rescanning on every back-to-back change
                         val fast = withContext(Dispatchers.IO) { scanLibrary(context) }
                         songs = fast
+                        libraryLoading = false
                         MusicPlayerManager.initPlayer(context)
                         MusicPlayerManager.restoreQueue(fast)
                         withContext(Dispatchers.IO) {
@@ -268,51 +299,15 @@ class MainActivity : ComponentActivity() {
                         MusicPlayerManager.initPlayer(context)
                     }
 
-                    AnimatedContent(
-                        targetState = currentScreen,
-                        transitionSpec = {
-                            val isBack = backStack.indexOf(targetState) < backStack.indexOf(initialState)
-                            val isTopDropSheet = { s: Screen -> s is Screen.Settings || s is Screen.About || s is Screen.Albums || s is Screen.AlbumDetail }
-                            val isBottomSlideSheet = { s: Screen -> s is Screen.Player || s is Screen.Queue || s is Screen.ComposerDetail || s is Screen.Artists || s is Screen.ArtistDetail || s is Screen.Songs || s is Screen.PlaylistDetail }
-                            when {
-                                (initialState is Screen.MainMenu && isBottomSlideSheet(targetState)) -> {
-                                    (slideInVertically { height -> height } + fadeIn()) togetherWith
-                                            (slideOutVertically { height -> -height / 4 } + fadeOut())
-                                }
-                                (isBottomSlideSheet(initialState) && targetState is Screen.MainMenu) -> {
-                                    (slideInVertically { height -> -height / 4 } + fadeIn()) togetherWith
-                                            (slideOutVertically { height -> height } + fadeOut())
-                                }
-                                (initialState is Screen.MainMenu && isTopDropSheet(targetState)) -> {
-                                    (slideInVertically { height -> -height } + fadeIn()) togetherWith
-                                            (slideOutVertically { height -> height / 4 } + fadeOut())
-                                }
-                                (isTopDropSheet(initialState) && targetState is Screen.MainMenu) -> {
-                                    (slideInVertically { height -> height / 4 } + fadeIn()) togetherWith
-                                            (slideOutVertically { height -> -height } + fadeOut())
-                                }
-                                (initialState is Screen.MainMenu && targetState is Screen.AlbumDetail) ||
-                                (initialState is Screen.AlbumDetail && targetState is Screen.MainMenu && isBack) -> {
-                                    if (targetState is Screen.AlbumDetail) {
-                                        (fadeIn() + scaleIn(initialScale = 0.8f)) togetherWith
-                                                (fadeOut() + scaleOut(targetScale = 1.1f))
-                                    } else {
-                                        (fadeIn() + scaleIn(initialScale = 1.1f)) togetherWith
-                                                (fadeOut() + scaleOut(targetScale = 0.8f))
-                                    }
-                                }
-                                isBack -> {
-                                    (slideInHorizontally { width -> -width } + fadeIn()) togetherWith
-                                            (slideOutHorizontally { width -> width } + fadeOut())
-                                }
-                                else -> {
-                                    (slideInHorizontally { width -> width } + fadeIn()) togetherWith
-                                            (slideOutHorizontally { width -> -width } + fadeOut())
-                                }
-                            }
-                        },
-                        label = "ScreenTransition",
-                    ) { screen ->
+                    // Screens that float over the previous one as a sheet (rounded top, blurred background behind)
+                    val isSheetScreen = { sc: Screen ->
+                        sc is Screen.Songs || sc is Screen.Albums || sc is Screen.AlbumDetail ||
+                            sc is Screen.Artists || sc is Screen.ArtistDetail ||
+                            sc is Screen.PlaylistDetail || sc is Screen.ComposerDetail
+                    }
+
+                    @Composable
+                    fun ScreenContent(screen: Screen) {
                         when (screen) {
                             is Screen.MainMenu -> {
                                 MainMenuScreen(
@@ -475,6 +470,16 @@ class MainActivity : ComponentActivity() {
                                         libraryRefresh++
                                     },
                                     uiStyle = currentUiStyle,
+                                    fontChoice = currentFontChoice,
+                                    onFontChoiceChange = { choice ->
+                                        currentFontChoice = choice
+                                        UiStylePrefs.saveFontChoice(context, choice)
+                                    },
+                                    shapeFamily = currentShapeFamily,
+                                    onShapeFamilyChange = { family ->
+                                        currentShapeFamily = family
+                                        UiStylePrefs.saveShapeFamily(context, family)
+                                    },
                                     onUiStyleChange = { newStyle ->
                                         currentUiStyle = newStyle
                                         UiStylePrefs.saveStyle(context, newStyle)
@@ -497,6 +502,170 @@ class MainActivity : ComponentActivity() {
                                     onBackClick = { popBackStack() },
                                 )
                             }
+                        }
+                    }
+
+                    val baseScreen = backStack.lastOrNull { !isSheetScreen(it) } ?: Screen.MainMenu
+                    val sheetScreen = currentScreen.takeIf { isSheetScreen(it) }
+                    val sheetHolder = remember { arrayOfNulls<Screen>(1) }
+                    if (sheetScreen != null) sheetHolder[0] = sheetScreen
+                    val renderedSheet = sheetScreen ?: sheetHolder[0]
+
+                    fun dismissSheets() {
+                        while (backStack.size > 1 && isSheetScreen(backStack.last())) {
+                            backStack.removeAt(backStack.lastIndex)
+                        }
+                    }
+
+                    // Everything under a sheet gets blurred smoothly
+                    val sheetBlur by animateDpAsState(
+                        targetValue = if (sheetScreen != null) 14.dp else 0.dp,
+                        animationSpec = if (sheetScreen != null) {
+                            tween(320, easing = FastOutSlowInEasing)
+                        } else {
+                            tween(140, easing = FastOutSlowInEasing)
+                        },
+                        label = "sheetBackgroundBlur"
+                    )
+
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .blur(sheetBlur, BlurredEdgeTreatment.Rectangle)
+                        ) {
+                            AnimatedContent(
+                                targetState = baseScreen,
+                                transitionSpec = {
+                                    val isBack = backStack.indexOf(initialState) < 0 ||
+                                        backStack.indexOf(targetState) < backStack.indexOf(initialState)
+                                    val isTopDropSheet = { s: Screen -> s is Screen.Settings || s is Screen.About }
+                                    val isBottomSlideSheet = { s: Screen -> s is Screen.Player || s is Screen.Queue }
+                                    when {
+                                        (initialState is Screen.MainMenu && isBottomSlideSheet(targetState)) -> {
+                                            (slideInVertically(tween(420, easing = FastOutSlowInEasing)) { height -> height } + fadeIn()) togetherWith
+                                                    (slideOutVertically(tween(420, easing = FastOutSlowInEasing)) { height -> -height / 4 } + fadeOut())
+                                        }
+                                        (isBottomSlideSheet(initialState) && targetState is Screen.MainMenu) -> {
+                                            (slideInVertically(tween(420, easing = FastOutSlowInEasing)) { height -> -height / 4 } + fadeIn()) togetherWith
+                                                    (slideOutVertically(tween(420, easing = FastOutSlowInEasing)) { height -> height } + fadeOut())
+                                        }
+                                        (initialState is Screen.MainMenu && isTopDropSheet(targetState)) -> {
+                                            (slideInVertically { height -> -height } + fadeIn()) togetherWith
+                                                    (slideOutVertically { height -> height / 4 } + fadeOut())
+                                        }
+                                        (isTopDropSheet(initialState) && targetState is Screen.MainMenu) -> {
+                                            (slideInVertically { height -> height / 4 } + fadeIn()) togetherWith
+                                                    (slideOutVertically { height -> -height } + fadeOut())
+                                        }
+                                        isBack -> {
+                                            (slideInHorizontally { width -> -width } + fadeIn()) togetherWith
+                                                    (slideOutHorizontally { width -> width } + fadeOut())
+                                        }
+                                        else -> {
+                                            (slideInHorizontally { width -> width } + fadeIn()) togetherWith
+                                                    (slideOutHorizontally { width -> -width } + fadeOut())
+                                        }
+                                    }
+                                },
+                                label = "ScreenTransition",
+                            ) { screen ->
+                                // The screen that gets covered (e.g. main menu under the full-screen player) blurs while it leaves
+                                val coverBlur by transition.animateDp(
+                                    transitionSpec = { tween(420, easing = FastOutSlowInEasing) },
+                                    label = "coveredScreenBlur"
+                                ) { state ->
+                                    when (state) {
+                                        EnterExitState.Visible -> 0.dp
+                                        EnterExitState.PostExit -> 18.dp
+                                        EnterExitState.PreEnter -> if (screen is Screen.MainMenu) 18.dp else 0.dp
+                                    }
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .blur(coverBlur, BlurredEdgeTreatment.Rectangle)
+                                ) {
+                                    ScreenContent(screen)
+                                }
+                            }
+                        }
+
+                        // Dimming behind the sheet, tap to close
+                        AnimatedVisibility(
+                            visible = sheetScreen != null,
+                            enter = fadeIn(tween(300)),
+                            exit = fadeOut(tween(160)),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.32f))
+                                    .pointerInput(Unit) { detectTapGestures { dismissSheets() } }
+                            )
+                        }
+
+                        // The sheet itself: full width, not full height, rounded top corners
+                        AnimatedVisibility(
+                            visible = sheetScreen != null,
+                            modifier = Modifier.fillMaxSize(),
+                            enter = slideInVertically(tween(440, easing = FastOutSlowInEasing)) { it } + fadeIn(tween(200)),
+                            exit = slideOutVertically(tween(300, easing = FastOutSlowInEasing)) { it } + fadeOut(tween(260)),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .statusBarsPadding()
+                                    .padding(top = 44.dp),
+                                contentAlignment = Alignment.BottomCenter
+                            ) {
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .pointerInput(Unit) { detectTapGestures { } },
+                                    shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp),
+                                    color = MaterialTheme.colorScheme.surface,
+                                    tonalElevation = 0.dp,
+                                    shadowElevation = 12.dp
+                                ) {
+                                    if (renderedSheet != null) {
+                                        AnimatedContent(
+                                            targetState = renderedSheet,
+                                            transitionSpec = {
+                                                val isBack = backStack.indexOf(initialState) < 0 ||
+                                                    backStack.indexOf(targetState) < backStack.indexOf(initialState)
+                                                if (isBack) {
+                                                    (slideInHorizontally(tween(380, easing = FastOutSlowInEasing)) { w -> -w / 3 } + fadeIn(tween(300))) togetherWith
+                                                            (slideOutHorizontally(tween(380, easing = FastOutSlowInEasing)) { w -> w / 3 } + fadeOut(tween(200)))
+                                                } else {
+                                                    (slideInHorizontally(tween(380, easing = FastOutSlowInEasing)) { w -> w / 3 } + fadeIn(tween(300))) togetherWith
+                                                            (slideOutHorizontally(tween(380, easing = FastOutSlowInEasing)) { w -> -w / 3 } + fadeOut(tween(200)))
+                                                }
+                                            },
+                                            label = "SheetContentTransition"
+                                        ) { sc ->
+                                            ScreenContent(sc)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Loading screen: morphing expressive shapes (MD3E) or the standard indicator (MD3)
+                        AnimatedVisibility(
+                            visible = libraryLoading && audioGranted,
+                            modifier = Modifier.fillMaxSize(),
+                            enter = fadeIn(tween(200)),
+                            exit = fadeOut(tween(380, easing = FastOutSlowInEasing)) +
+                                scaleOut(tween(380, easing = FastOutSlowInEasing), targetScale = 1.04f)
+                        ) {
+                            LoadingScreen(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .pointerInput(Unit) { detectTapGestures { } },
+                                label = "Loading library…"
+                            )
                         }
                     }
                 }

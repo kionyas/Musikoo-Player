@@ -7,6 +7,17 @@ enum class UiStyle {
     EXPENSIVE
 }
 
+/** Shape family: MD3 = standard Material 3 corner scale, MD3E = Material 3 Expressive leaf-like corners. */
+enum class ShapeFamily {
+    MD3,
+    MD3E
+}
+
+enum class FontChoice {
+    BASE,
+    LORA
+}
+
 enum class ColorThemeMode {
     DYNAMIC,
     CLASSIC,
@@ -21,3 +32,5 @@ enum class ColorThemeMode {
 val LocalUiStyle = compositionLocalOf { UiStyle.EXPENSIVE }
 
 val LocalFancyStyle = compositionLocalOf { true }
+
+val LocalShapeFamily = compositionLocalOf { ShapeFamily.MD3E }

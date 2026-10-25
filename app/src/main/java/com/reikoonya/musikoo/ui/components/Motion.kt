@@ -1,5 +1,6 @@
 package com.reikoonya.musikoo.ui.components
 
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -19,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
@@ -47,14 +49,20 @@ fun Modifier.pressScale(source: InteractionSource, pressedScale: Float = 0.92f):
     }
 }
 
-/** Like Modifier.clickable, but with a spring press animation. */
+/** Clips touch area and ripple to the element's own shape (no-op for the default rectangle). */
+private fun Modifier.clipToShape(shape: Shape): Modifier =
+    if (shape === RectangleShape) this else this.clip(shape)
+
+/** Like Modifier.clickable, but with a spring press animation. Pass the element's shape so the touch box and highlight match it. */
 fun Modifier.bounceClickable(
     pressedScale: Float = 0.96f,
+    shape: Shape = RectangleShape,
     onClick: () -> Unit,
 ): Modifier = composed {
     val source = remember { MutableInteractionSource() }
     this
         .pressScale(source, pressedScale)
+        .clipToShape(shape)
         .clickable(
             interactionSource = source,
             indication = LocalIndication.current,
@@ -72,7 +80,7 @@ fun BounceIconButton(
     val source = remember { MutableInteractionSource() }
     IconButton(
         onClick = onClick,
-        modifier = modifier.pressScale(source),
+        modifier = modifier.minimumInteractiveComponentSize().pressScale(source),
         interactionSource = source,
         content = content
     )
@@ -105,6 +113,7 @@ fun BounceSurface(
 @OptIn(ExperimentalFoundationApi::class)
 fun Modifier.bounceCombinedClickable(
     pressedScale: Float = 0.96f,
+    shape: Shape = RectangleShape,
     onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
 ): Modifier = composed {
@@ -112,6 +121,7 @@ fun Modifier.bounceCombinedClickable(
     val haptic = LocalHapticFeedback.current
     this
         .pressScale(source, pressedScale)
+        .clipToShape(shape)
         .combinedClickable(
             interactionSource = source,
             indication = LocalIndication.current,

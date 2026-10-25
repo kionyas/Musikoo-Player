@@ -1,5 +1,6 @@
 package com.reikoonya.musikoo.ui
 
+import com.reikoonya.musikoo.ui.components.AppLoadingIndicator
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -28,7 +29,7 @@ fun LastFmAuthDialog(
         confirmButton = {
             TextButton(onClick = onConfirm, enabled = !busy) {
                 if (busy) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    AppLoadingIndicator(size = 22.dp)
                 } else {
                     Text("Done")
                 }

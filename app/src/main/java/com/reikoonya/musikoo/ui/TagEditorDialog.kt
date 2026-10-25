@@ -1,5 +1,7 @@
 package com.reikoonya.musikoo.ui
 
+import com.reikoonya.musikoo.ui.components.AppLoadingIndicator
+import com.reikoonya.musikoo.ui.components.shapeOf
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.navigationBars
@@ -275,7 +277,7 @@ fun TagEditorDialog(
                         KeyboardType.Text
                     }
                 ),
-                shape = RoundedCornerShape(22.dp),
+                shape = shapeOf(22.dp),
                 modifier = modifier
             )
         }
@@ -305,7 +307,7 @@ fun TagEditorDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(230.dp)
-                                .clip(RoundedCornerShape(40.dp))
+                                .clip(shapeOf(40.dp))
                                 .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                             contentAlignment = Alignment.Center
                         ) {
@@ -332,7 +334,7 @@ fun TagEditorDialog(
                             FilledTonalButton(
                                 onClick = { pickCover.launch("image/*") },
                                 enabled = !saving && !loading,
-                                shape = RoundedCornerShape(20.dp),
+                                shape = shapeOf(20.dp),
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Icon(Icons.Rounded.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -342,7 +344,7 @@ fun TagEditorDialog(
                             FilledTonalButton(
                                 onClick = { cover = CoverChange.Remove },
                                 enabled = !saving && !loading && shownCover != null,
-                                shape = RoundedCornerShape(20.dp),
+                                shape = shapeOf(20.dp),
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -417,7 +419,7 @@ fun TagEditorDialog(
                 Surface(
                     modifier = Modifier
                         .size(44.dp)
-                        .bounceClickable { if (!saving) onDismiss() },
+                        .bounceClickable(shape = CircleShape) { if (!saving) onDismiss() },
                     shape = CircleShape,
                     color = glassFill(),
                     border = glassStroke(),
@@ -436,7 +438,7 @@ fun TagEditorDialog(
                     modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = 8.dp),
-                    shape = RoundedCornerShape(32.dp),
+                    shape = shapeOf(32.dp),
                     color = glassFill(),
                     border = glassStroke()
                 ) {
@@ -474,7 +476,7 @@ fun TagEditorDialog(
                 Surface(
                     onClick = { onSaveClick() },
                     enabled = canSave,
-                    shape = RoundedCornerShape(32.dp),
+                    shape = shapeOf(32.dp),
                     color = if (canSave) MaterialTheme.colorScheme.primaryContainer else glassFill(),
                     border = glassStroke()
                 ) {
@@ -499,12 +501,12 @@ fun TagEditorDialog(
                         .windowInsetsPadding(WindowInsets.navigationBars)
                 )
             } else if (loading) {
-                LinearProgressIndicator(
+                AppLoadingIndicator(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .windowInsetsPadding(WindowInsets.navigationBars)
+                        .padding(16.dp)
+                        .windowInsetsPadding(WindowInsets.navigationBars),
+                    size = 36.dp
                 )
             }
         }
@@ -516,7 +518,7 @@ fun TagEditorDialog(
 private fun TagGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(32.dp),
+        shape = shapeOf(32.dp),
         color = cardFill(),
         border = glassStroke()
     ) {

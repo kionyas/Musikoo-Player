@@ -1,5 +1,8 @@
 package com.reikoonya.musikoo.ui
 
+import com.reikoonya.musikoo.ui.components.coverShapeOf
+import com.reikoonya.musikoo.ui.components.PillTransition
+import com.reikoonya.musikoo.ui.components.shapeOf
 import com.reikoonya.musikoo.ui.components.rememberPersistentLazyListState
 import androidx.compose.material.icons.rounded.*
 import kotlin.math.roundToInt
@@ -141,7 +144,7 @@ fun PlaylistDetailScreen(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            shape = RoundedCornerShape(32.dp),
+            shape = shapeOf(32.dp),
             title = { Text(stringResource(R.string.delete_playlist), fontWeight = FontWeight.Bold) },
             text = { Text(stringResource(R.string.delete_playlist_confirm, playlist.name)) },
             confirmButton = {
@@ -189,7 +192,7 @@ fun PlaylistDetailScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(36.dp),
+                    shape = shapeOf(36.dp),
                     colors = CardDefaults.cardColors(containerColor = cardFill()),
                     border = glassStroke()
                 ) {
@@ -275,7 +278,7 @@ fun PlaylistDetailScreen(
                         .zIndex(if (isDragging) 1f else 0f)
                         .offset { IntOffset(0, if (isDragging) dragOffset.roundToInt() else 0) }
                         .onSizeChanged { rowHeightPx = it.height.toFloat() }
-                        .clip(RoundedCornerShape(26.dp))
+                        .clip(shapeOf(26.dp))
                         .bounceCombinedClickable(
                             onLongClick = {
                                 selectedSongIds = if (isSelected) selectedSongIds - song.id else selectedSongIds + song.id
@@ -287,7 +290,7 @@ fun PlaylistDetailScreen(
                                 onSongClick(orderedSongs, index)
                             }
                         },
-                    shape = RoundedCornerShape(26.dp),
+                    shape = shapeOf(26.dp),
                     color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else cardFill(),
                     border = glassStroke(),
                     tonalElevation = if (isSelected) 4.dp else 1.dp
@@ -302,7 +305,7 @@ fun PlaylistDetailScreen(
                         Surface(
                             modifier = Modifier
                                 .size(52.dp)
-                                .clip(RoundedCornerShape(20.dp)),
+                                .clip(coverShapeOf(12.dp)),
                             color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer
                         ) {
                             if (isSelected) {
@@ -360,8 +363,10 @@ fun PlaylistDetailScreen(
                             contentDescription = "More",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
-                                .size(28.dp)
+                                .size(40.dp)
+                                .clip(CircleShape)
                                 .clickable { actionSong = song }
+                                .padding(6.dp)
                         )
                         // Drag handle: long-press and drag to move the song
                         Icon(
@@ -420,7 +425,7 @@ fun PlaylistDetailScreen(
             Surface(
                 modifier = Modifier
                     .size(44.dp)
-                    .bounceClickable {
+                    .bounceClickable(shape = CircleShape) {
                         if (isSelecting) {
                             selectedSongIds = emptySet()
                         } else {
@@ -442,11 +447,12 @@ fun PlaylistDetailScreen(
             }
 
             Surface(
-                shape = RoundedCornerShape(32.dp),
+                shape = shapeOf(32.dp),
                 color = glassFill(),
                 border = glassStroke()
             ) {
-                if (isSelecting) {
+                PillTransition(isSelecting) { selecting ->
+                if (selecting) {
                     Row(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -523,12 +529,13 @@ fun PlaylistDetailScreen(
                         )
                     }
                 }
+                }
             }
 
             Surface(
                 modifier = Modifier
                     .size(44.dp)
-                    .bounceClickable { onQueueClick() },
+                    .bounceClickable(shape = CircleShape) { onQueueClick() },
                 shape = CircleShape,
                 color = glassFill(),
                 border = glassStroke(),

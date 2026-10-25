@@ -2,6 +2,7 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
@@ -18,8 +19,8 @@ android {
         applicationId = "com.reikoonya.musikoo"
         minSdk = 31
         targetSdk = 37
-        versionCode = 10
-        versionName = "1.3.3"
+        versionCode = 12
+        versionName = "1.4.1"
 
         buildConfigField("String", "LASTFM_API_KEY", "\"${localProps.getProperty("API_KEY", "")}\"")
         buildConfigField("String", "LASTFM_API_SECRET", "\"${localProps.getProperty("API_SECRET", "")}\"")
@@ -43,6 +44,12 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
     }
 }
 
@@ -84,4 +91,6 @@ dependencies {
     // Jetpack Glance (App Widgets)
     implementation("androidx.glance:glance-appwidget:1.2.0")
     implementation("androidx.glance:glance-material3:1.2.0")
+
+
 }

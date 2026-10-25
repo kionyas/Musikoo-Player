@@ -1,4 +1,13 @@
-# Changelog
+## 1.4.1
+
+### New
+- OTA Updates.
+- New design, new feelings and experience.
+- More settings, typeface, shapes & more.
+
+### QOL & Fixes
+- Fixes for Android 17.
+- Optimization.
 
 ## 1.3.3
 
@@ -24,10 +33,10 @@
 ## 1.3.0
 
 ### Compatibility
-MIN SDK is 32 (Android 12) and target SDK is 37(Android 17).
+MIN SDK is 32 (Android 12) and target SDK is 37 (Android 17).
 
 ### QOL & Fixes
-- Perfomance fixing.
+- Performance fixes.
 - Accessibility of buttons.
 - Timer in Player, Miniplayer.
 - Fixed monet icon.

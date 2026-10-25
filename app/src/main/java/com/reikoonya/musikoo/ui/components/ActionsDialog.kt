@@ -37,7 +37,7 @@ fun ActionsDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(36.dp),
+        shape = shapeOf(36.dp),
         title = {
             Text(
                 text = title,
@@ -54,7 +54,7 @@ fun ActionsDialog(
                         headlineContent = { Text(action.label) },
                         leadingContent = { Icon(action.icon, contentDescription = null) },
                         modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
+                            .clip(shapeOf(20.dp))
                             .clickable(onClick = action.onClick)
                     )
                 }

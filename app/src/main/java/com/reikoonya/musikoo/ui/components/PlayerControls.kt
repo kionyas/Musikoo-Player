@@ -55,6 +55,7 @@ fun ExpressivePlayButton(
     size: Dp? = null,
     iconSize: Dp = 32.dp,
     playingCorner: Dp = 22.dp,
+    idleCorner: Dp? = null,
 ) {
     val actualWidth = size ?: width
     val actualHeight = size ?: height
@@ -67,7 +68,7 @@ fun ExpressivePlayButton(
         label = "playPop"
     )
 
-    val targetCorner = if (isPlaying) playingCorner else actualHeight / 2
+    val targetCorner = if (isPlaying) playingCorner else (idleCorner ?: (actualHeight / 2))
     val targetWidth = if (isPlaying) actualWidth else actualHeight
 
     val corner by animateDpAsState(
@@ -137,7 +138,7 @@ fun GlassIconButton(
     width: Dp = 56.dp,
     height: Dp = 52.dp,
     iconSize: Dp = 26.dp,
-    shape: Shape = RoundedCornerShape(22.dp),
+    shape: Shape = shapeOf(22.dp),
     containerColor: Color = glassFill(),
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
     /** In plain M3, draw just the icon without a container (as before). */

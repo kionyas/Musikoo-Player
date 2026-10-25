@@ -1,5 +1,7 @@
 package com.reikoonya.musikoo.ui
 
+import com.reikoonya.musikoo.ui.components.TopPill
+import com.reikoonya.musikoo.ui.components.shapeOf
 import androidx.compose.material.icons.rounded.*
 import android.content.Context
 import android.graphics.Bitmap
@@ -176,11 +178,11 @@ fun AboutScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(170.dp)
-                    .clip(RoundedCornerShape(32.dp))
+                    .clip(shapeOf(32.dp))
                     .bounceClickable {
                         showBannerOptions = true
                     },
-                shape = RoundedCornerShape(32.dp),
+                shape = shapeOf(32.dp),
                 colors = CardDefaults.cardColors(containerColor = cardFill()),
                 border = glassStroke(),
                 elevation = CardDefaults.cardElevation(defaultElevation = if (LocalFancyStyle.current) 0.dp else 2.dp)
@@ -196,13 +198,13 @@ fun AboutScreen(
                             contentDescription = "Banner",
                             modifier = Modifier
                                 .fillMaxSize()
-                                .clip(RoundedCornerShape(32.dp)),
+                                .clip(shapeOf(32.dp)),
                             contentScale = ContentScale.Crop
                         )
                     } else {
                         Surface(
                             modifier = Modifier.size(64.dp),
-                            shape = RoundedCornerShape(22.dp),
+                            shape = shapeOf(22.dp),
                             color = MaterialTheme.colorScheme.primaryContainer
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -221,7 +223,7 @@ fun AboutScreen(
             // Info Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(28.dp),
+                shape = shapeOf(28.dp),
                 colors = CardDefaults.cardColors(containerColor = cardFill()),
                 border = glassStroke()
             ) {
@@ -245,7 +247,10 @@ fun AboutScreen(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = stringResource(R.string.version, "1.3.3"),
+                        text = stringResource(
+                            R.string.version,
+                            com.reikoonya.musikoo.util.UpdateManager.currentVersion(androidx.compose.ui.platform.LocalContext.current)
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -257,7 +262,7 @@ fun AboutScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(260.dp),
-                shape = RoundedCornerShape(28.dp),
+                shape = shapeOf(28.dp),
                 colors = CardDefaults.cardColors(containerColor = cardFill(MaterialTheme.colorScheme.surfaceContainerHighest)),
                 border = glassStroke(),
                 elevation = CardDefaults.cardElevation(defaultElevation = if (LocalFancyStyle.current) 0.dp else 1.dp)
@@ -321,7 +326,7 @@ fun AboutScreen(
             Surface(
                 modifier = Modifier
                     .size(44.dp)
-                    .bounceClickable { onBackClick() },
+                    .bounceClickable(shape = CircleShape) { onBackClick() },
                 shape = CircleShape,
                 color = glassFill(),
                 border = glassStroke(),
@@ -336,33 +341,9 @@ fun AboutScreen(
                 }
             }
 
-            Surface(
-                shape = RoundedCornerShape(32.dp),
-                color = glassFill(),
-                border = glassStroke()
-            ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(28.dp)
-                            .height(3.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.about),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
+            TopPill(
+                text = stringResource(R.string.about)
+            )
 
             Spacer(modifier = Modifier.size(44.dp))
         }

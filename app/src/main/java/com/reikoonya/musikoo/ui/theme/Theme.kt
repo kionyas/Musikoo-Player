@@ -1,5 +1,6 @@
 package com.reikoonya.musikoo.ui.theme
 
+import androidx.compose.ui.text.font.FontFamily
 import android.graphics.Bitmap
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -12,12 +13,23 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.reikoonya.musikoo.util.accentFromBitmap
+
+// Material 3 standard shape scale (M3 shape tokens)
+val Md3Shapes = Shapes(
+    extraSmall = RoundedCornerShape(4.dp),
+    small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(12.dp),
+    large = RoundedCornerShape(16.dp),
+    extraLarge = RoundedCornerShape(28.dp),
+)
 
 private val DarkColorScheme = darkColorScheme(
     primary = ExpressiveDarkPrimary,
@@ -119,52 +131,33 @@ private val ClassicLightColorScheme = lightColorScheme(
     surfaceContainerHighest = Color(0xFFDADADA)
 )
 
-private fun createCoverColorScheme(
-    art: Bitmap?,
-    darkTheme: Boolean,
-    fallback: ColorScheme
-): ColorScheme {
-    if (art == null) return fallback
-    val accent = accentFromBitmap(art, darkTheme) ?: return fallback
-
-    val hsv = FloatArray(3)
-    android.graphics.Color.colorToHSV(accent.toArgb(), hsv)
-
-    val hue = hsv[0]
-    val sat = hsv[1]
-
-    fun hsvColor(h: Float, s: Float, v: Float): Color {
-        return Color(android.graphics.Color.HSVToColor(floatArrayOf(h, s.coerceIn(0f, 1f), v.coerceIn(0f, 1f))))
-    }
-
-    return if (darkTheme) {
-        val primary = hsvColor(hue, (sat * 1.3f).coerceAtLeast(0.65f), 0.98f)
-        val onPrimary = Color(0xFF0C0C0C)
-        val primaryContainer = hsvColor(hue, (sat * 0.85f).coerceIn(0.35f, 0.8f), 0.42f)
-        val onPrimaryContainer = hsvColor(hue, (sat * 0.4f).coerceAtMost(0.5f), 0.98f)
-        val secondary = hsvColor((hue + 25f) % 360f, (sat * 0.75f).coerceIn(0.3f, 0.7f), 0.90f)
-
-        fallback.copy(
-            primary = primary,
-            onPrimary = onPrimary,
-            primaryContainer = primaryContainer,
-            onPrimaryContainer = onPrimaryContainer,
-            secondary = secondary,
-            tertiary = hsvColor((hue + 45f) % 360f, (sat * 0.7f).coerceIn(0.3f, 0.6f), 0.92f)
-        )
-    } else {
-        val primary = hsvColor(hue, (sat * 1.25f).coerceAtLeast(0.7f), 0.48f)
-        val onPrimary = Color.White
-        val primaryContainer = hsvColor(hue, (sat * 0.35f).coerceIn(0.2f, 0.5f), 0.88f)
-        val onPrimaryContainer = hsvColor(hue, (sat * 0.95f).coerceAtLeast(0.7f), 0.20f)
-
-        fallback.copy(
-            primary = primary,
-            onPrimary = onPrimary,
-            primaryContainer = primaryContainer,
-            onPrimaryContainer = onPrimaryContainer
-        )
-    }
+/** Smoothly cross-fades every role when the scheme changes (new cover, theme switch). */
+@Composable
+private fun ColorScheme.animated(): ColorScheme {
+    val spec = tween<Color>(durationMillis = 600)
+    @Composable
+    fun a(c: Color): Color = animateColorAsState(c, spec, label = "scheme").value
+    return copy(
+        primary = a(primary), onPrimary = a(onPrimary),
+        primaryContainer = a(primaryContainer), onPrimaryContainer = a(onPrimaryContainer),
+        inversePrimary = a(inversePrimary),
+        secondary = a(secondary), onSecondary = a(onSecondary),
+        secondaryContainer = a(secondaryContainer), onSecondaryContainer = a(onSecondaryContainer),
+        tertiary = a(tertiary), onTertiary = a(onTertiary),
+        tertiaryContainer = a(tertiaryContainer), onTertiaryContainer = a(onTertiaryContainer),
+        background = a(background), onBackground = a(onBackground),
+        surface = a(surface), onSurface = a(onSurface),
+        surfaceVariant = a(surfaceVariant), onSurfaceVariant = a(onSurfaceVariant),
+        surfaceTint = a(surfaceTint),
+        inverseSurface = a(inverseSurface), inverseOnSurface = a(inverseOnSurface),
+        error = a(error), onError = a(onError),
+        errorContainer = a(errorContainer), onErrorContainer = a(onErrorContainer),
+        outline = a(outline), outlineVariant = a(outlineVariant),
+        surfaceDim = a(surfaceDim), surfaceBright = a(surfaceBright),
+        surfaceContainerLowest = a(surfaceContainerLowest), surfaceContainerLow = a(surfaceContainerLow),
+        surfaceContainer = a(surfaceContainer), surfaceContainerHigh = a(surfaceContainerHigh),
+        surfaceContainerHighest = a(surfaceContainerHighest)
+    )
 }
 
 // Material 3 Expressive (Android 17 style) hyper-rounded experimental shapes
@@ -181,10 +174,14 @@ fun MusikooTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     colorThemeMode: ColorThemeMode = ColorThemeMode.DYNAMIC,
     uiStyle: UiStyle = UiStyle.EXPENSIVE,
+    shapeFamily: ShapeFamily = ShapeFamily.MD3E,
+    fontChoice: FontChoice = FontChoice.BASE,
     coverArt: Bitmap? = null,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
+    // Shape helpers read the family from here, so the setting applies to every shapeOf() call
+    com.reikoonya.musikoo.ui.components.ShapeStyle.family = shapeFamily
 
     val baseScheme = when (colorThemeMode) {
         ColorThemeMode.DYNAMIC -> {
@@ -199,7 +196,11 @@ fun MusikooTheme(
         }
         ColorThemeMode.COVER -> {
             val fallback = if (darkTheme) DarkColorScheme else LightColorScheme
-            createCoverColorScheme(coverArt, darkTheme, fallback)
+            // Real Material You palette (tonal, with matching surfaces) built from the cover
+            val coverScheme = remember(coverArt, darkTheme) {
+                coverArt?.let { monetSchemeFromBitmap(it, darkTheme) }
+            }
+            coverScheme ?: fallback
         }
     }
 
@@ -210,9 +211,10 @@ fun MusikooTheme(
         LocalFancyStyle provides isFancy
     ) {
         MaterialTheme(
-            colorScheme = baseScheme,
-            shapes = ExpressiveShapes,
-            typography = if (isFancy) Typography else ClassicTypography,
+            colorScheme = baseScheme.animated(),
+            shapes = if (shapeFamily == ShapeFamily.MD3) Md3Shapes else ExpressiveShapes,
+            typography = (if (isFancy) Typography else ClassicTypography)
+                .let { if (fontChoice == FontChoice.LORA) it.withFamily(LoraFamily) else it },
             content = content
         )
     }
@@ -223,11 +225,13 @@ fun MusikooTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
     uiStyle: UiStyle = UiStyle.EXPENSIVE,
+    shapeFamily: ShapeFamily = ShapeFamily.MD3E,
     content: @Composable () -> Unit
 ) = MusikooTheme(
     darkTheme = darkTheme,
     colorThemeMode = if (dynamicColor) ColorThemeMode.DYNAMIC else ColorThemeMode.CLASSIC,
     uiStyle = uiStyle,
+    shapeFamily = shapeFamily,
     content = content
 )
 

@@ -112,6 +112,7 @@ object MusicPlayerManager {
                             }
 
                             override fun onPlayerError(error: PlaybackException) {
+                                android.util.Log.e("Musikoo", "Playback error, recovering", error)
                                 // Do not stay dead after an error: re-prepare the current item at the same position
                                 exoPlayer?.let { p ->
                                     val index = p.currentMediaItemIndex.coerceAtLeast(0)

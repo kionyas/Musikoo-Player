@@ -32,7 +32,7 @@ data class LyricsResult(
  */
 object LyricsRepository {
     private const val BASE_URL = "https://api.lrcmux.dev"
-    private const val USER_AGENT = "Musikoo/1.3.3 (https://github.com/reikoonya/musikoo)"
+    private const val USER_AGENT = "Musikoo/1.4.1 (https://github.com/reikoonya/musikoo)"
 
     private val noiseRegex = Regex("""(?i)\s*([\(\[](feat\.|ft\.|featuring|official|lyric|remastered|deluxe|bonus|live)[^)\]]*[\)\]]|\b(feat\.|ft\.|featuring)\b.+$)""")
     private val topicRegex = Regex("""(?i)\s*-\s*Topic$""")

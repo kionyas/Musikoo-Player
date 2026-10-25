@@ -1,5 +1,8 @@
 package com.reikoonya.musikoo.ui
 
+import com.reikoonya.musikoo.ui.components.coverShapeOf
+import com.reikoonya.musikoo.ui.components.PillTransition
+import com.reikoonya.musikoo.ui.components.shapeOf
 import com.reikoonya.musikoo.ui.components.rememberPersistentLazyListState
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.foundation.Image
@@ -134,7 +137,7 @@ fun SongsScreen(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(26.dp))
+                        .clip(shapeOf(26.dp))
                         .bounceCombinedClickable(
                             onLongClick = {
                                 selectedSongIds = if (isSelected) selectedSongIds - song.id else selectedSongIds + song.id
@@ -149,7 +152,7 @@ fun SongsScreen(
                                 }
                             }
                         },
-                    shape = RoundedCornerShape(26.dp),
+                    shape = shapeOf(26.dp),
                     color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else cardFill(),
                     border = glassStroke(),
                     tonalElevation = if (isSelected) 4.dp else 1.dp
@@ -164,7 +167,7 @@ fun SongsScreen(
                         Surface(
                             modifier = Modifier
                                 .size(52.dp)
-                                .clip(RoundedCornerShape(20.dp)),
+                                .clip(coverShapeOf(12.dp)),
                             color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer
                         ) {
                             if (isSelected) {
@@ -238,7 +241,7 @@ fun SongsScreen(
             Surface(
                 modifier = Modifier
                     .size(44.dp)
-                    .bounceClickable {
+                    .bounceClickable(shape = CircleShape) {
                         if (isSelecting) {
                             selectedSongIds = emptySet()
                         } else {
@@ -265,7 +268,8 @@ fun SongsScreen(
                 border = glassStroke(),
                 tonalElevation = 3.dp
             ) {
-                if (isSelecting) {
+                PillTransition(isSelecting) { selecting ->
+                if (selecting) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -352,6 +356,7 @@ fun SongsScreen(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
+                }
                 }
             }
 

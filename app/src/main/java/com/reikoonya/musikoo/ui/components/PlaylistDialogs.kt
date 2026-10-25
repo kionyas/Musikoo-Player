@@ -65,7 +65,7 @@ fun PlaylistArt(
 
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(24.dp),
+        shape = shapeOf(24.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh
     ) {
         when {
@@ -155,7 +155,7 @@ fun AddToPlaylistDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(32.dp),
+        shape = shapeOf(32.dp),
         title = { Text(stringResource(R.string.add_to_playlist), fontWeight = FontWeight.Bold) },
         text = {
             Column(
@@ -167,7 +167,7 @@ fun AddToPlaylistDialog(
                 Button(
                     onClick = { showCreateDialog = true },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp)
+                    shape = shapeOf(20.dp)
                 ) {
                     Icon(Icons.Rounded.Add, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
@@ -183,7 +183,7 @@ fun AddToPlaylistDialog(
                             Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .bounceClickable {
+                                    .bounceClickable(shape = shapeOf(20.dp)) {
                                         PlaylistManager.addSongsToPlaylist(context, playlist.id, songIds)
                                         Toast.makeText(
                                             context,
@@ -192,7 +192,7 @@ fun AddToPlaylistDialog(
                                         ).show()
                                         onDismiss()
                                     },
-                                shape = RoundedCornerShape(20.dp),
+                                shape = shapeOf(20.dp),
                                 color = cardFill()
                             ) {
                                 Row(
@@ -245,7 +245,7 @@ fun CreatePlaylistDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(32.dp),
+        shape = shapeOf(32.dp),
         title = { Text(stringResource(R.string.create_playlist), fontWeight = FontWeight.Bold) },
         text = {
             OutlinedTextField(
@@ -253,7 +253,7 @@ fun CreatePlaylistDialog(
                 onValueChange = { name = it },
                 label = { Text(stringResource(R.string.playlist_name)) },
                 singleLine = true,
-                shape = RoundedCornerShape(20.dp),
+                shape = shapeOf(20.dp),
                 modifier = Modifier.fillMaxWidth()
             )
         },
@@ -312,7 +312,7 @@ fun EditPlaylistDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(32.dp),
+        shape = shapeOf(32.dp),
         title = { Text(stringResource(R.string.edit_playlist), fontWeight = FontWeight.Bold) },
         text = {
             Column(
@@ -326,7 +326,7 @@ fun EditPlaylistDialog(
                     onValueChange = { name = it },
                     label = { Text(stringResource(R.string.playlist_name)) },
                     singleLine = true,
-                    shape = RoundedCornerShape(20.dp),
+                    shape = shapeOf(20.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -338,7 +338,7 @@ fun EditPlaylistDialog(
                     FilledTonalButton(
                         onClick = { pickCover.launch("image/*") },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(20.dp)
+                        shape = shapeOf(20.dp)
                     ) {
                         Icon(Icons.Rounded.Image, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
@@ -371,7 +371,7 @@ fun EditPlaylistDialog(
                     itemsIndexed(playlistSongs) { index, song ->
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
+                            shape = shapeOf(16.dp),
                             color = cardFill()
                         ) {
                             Row(
@@ -450,7 +450,7 @@ fun MarkdownGuideDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(32.dp),
+        shape = shapeOf(32.dp),
         title = { Text(guideTitle, fontWeight = FontWeight.Bold) },
         text = {
             Box(

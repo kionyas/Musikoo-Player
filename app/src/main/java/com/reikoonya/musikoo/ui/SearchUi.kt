@@ -1,5 +1,7 @@
 package com.reikoonya.musikoo.ui
 
+import com.reikoonya.musikoo.ui.components.coverShapeOf
+import com.reikoonya.musikoo.ui.components.shapeOf
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material.icons.filled.Person
 import android.graphics.Bitmap
@@ -159,7 +161,7 @@ private fun buildHits(songs: List<Song>, query: String, mode: SearchMode, genre:
                     val s = item.value
                     if (genre != null) {
                         s.genre.equals(genre, ignoreCase = true) &&
-                            (q.isEmpty() || s.title.lowercase().contains(q))
+                                (q.isEmpty() || s.title.lowercase().contains(q))
                     } else {
                         q.isNotEmpty() && s.genre.lowercase().contains(q)
                     }
@@ -217,7 +219,7 @@ private fun SongRow(song: Song, mode: SearchMode, onClick: () -> Unit) {
     val subtitle = "${song.artist} · ${song.album}"
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = shapeOf(28.dp),
         color = cardFill(),
         border = glassStroke(),
         onClick = onClick
@@ -252,7 +254,7 @@ private fun SongRow(song: Song, mode: SearchMode, onClick: () -> Unit) {
 private fun AlbumRow(hit: SearchHit.AlbumHit, onClick: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = shapeOf(28.dp),
         color = cardFill(),
         border = glassStroke(),
         onClick = onClick
@@ -288,7 +290,7 @@ private fun SearchThumb(art: Bitmap?) {
     Box(
         modifier = Modifier
             .size(56.dp)
-            .clip(RoundedCornerShape(18.dp))
+            .clip(coverShapeOf(12.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHighest),
         contentAlignment = Alignment.Center
     ) {
@@ -328,64 +330,65 @@ fun SearchPanel(
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
 
-    Surface(
+    // No card of its own: it sits directly inside the bottom block (which already has the 6 dp padding),
+    // so the field is as wide as the collapsed pill and the edges stay concentric.
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(36.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        border = glassStroke()
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            TextField(
-                value = query,
-                onValueChange = onQueryChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .focusRequester(focus),
-                singleLine = true,
-                shape = RoundedCornerShape(28.dp),
-                placeholder = { Text(mode.hint) },
-                leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-                trailingIcon = {
-                    IconButton(onClick = onClose) {
-                        Icon(Icons.Rounded.Close, contentDescription = "Close")
-                    }
-                },
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
+        TextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .focusRequester(focus),
+            singleLine = true,
+            shape = CircleShape,
+            placeholder = { Text(mode.hint) },
+            leadingIcon = {
+                Icon(
+                    Icons.Rounded.Search,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
                 )
+            },
+            trailingIcon = {
+                IconButton(onClick = onClose) {
+                    Icon(Icons.Rounded.Close, contentDescription = "Close")
+                }
+            },
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
             )
+        )
 
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(horizontal = 4.dp)
-            ) {
-                items(listOf(SearchMode.SONG, SearchMode.ALBUM, SearchMode.ARTIST)) { option ->
-                    FilterChip(
-                        selected = mode == option,
-                        onClick = { onModeChange(option) },
-                        label = { Text(option.label, fontWeight = FontWeight.SemiBold) },
-                        leadingIcon = {
-                            Icon(option.icon, contentDescription = null, modifier = Modifier.size(18.dp))
-                        },
-                        shape = CircleShape
-                    )
-                }
-                item {
-                    GenreChip(
-                        selected = mode == SearchMode.GENRE,
-                        selectedGenre = selectedGenre,
-                        genres = genres,
-                        onOpen = { onModeChange(SearchMode.GENRE) },
-                        onGenreChange = onGenreChange
-                    )
-                }
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 10.dp)
+        ) {
+            items(listOf(SearchMode.SONG, SearchMode.ALBUM, SearchMode.ARTIST)) { option ->
+                FilterChip(
+                    selected = mode == option,
+                    onClick = { onModeChange(option) },
+                    label = { Text(option.label, fontWeight = FontWeight.SemiBold) },
+                    leadingIcon = {
+                        Icon(option.icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                    },
+                    shape = CircleShape
+                )
+            }
+            item {
+                GenreChip(
+                    selected = mode == SearchMode.GENRE,
+                    selectedGenre = selectedGenre,
+                    genres = genres,
+                    onOpen = { onModeChange(SearchMode.GENRE) },
+                    onGenreChange = onGenreChange
+                )
             }
         }
     }
