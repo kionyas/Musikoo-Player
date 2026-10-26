@@ -629,7 +629,7 @@ fun SettingsScreen(
                                     description = "Current: ${
                                         when (uiStyle) {
                                             UiStyle.CLASSIC -> "Solid"
-                                            UiStyle.EXPENSIVE -> "Cover"
+                                            UiStyle.EXPENSIVE -> "Solid"
                                         }
                                     }"
                                 )

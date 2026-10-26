@@ -19,8 +19,8 @@ android {
         applicationId = "com.reikoonya.musikoo"
         minSdk = 31
         targetSdk = 37
-        versionCode = 14
-        versionName = "1.5.0"
+        versionCode = 16
+        versionName = "1.5.1"
 
         buildConfigField("String", "LASTFM_API_KEY", "\"${localProps.getProperty("API_KEY", "")}\"")
         buildConfigField("String", "LASTFM_API_SECRET", "\"${localProps.getProperty("API_SECRET", "")}\"")
@@ -30,14 +30,9 @@ android {
 
     buildTypes {
         release {
-            // R8: сжатие и обфускация кода + удаление неиспользуемых ресурсов.
-            // Правила для jaudiotagger лежат в src/main/keepRules/rules.keep.
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("debug") // временно
         }
     }
     compileOptions {
