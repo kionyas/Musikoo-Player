@@ -1,4 +1,4 @@
-# ★ Musikoo-Player ★ 
+# ★Musikoo-Player★ 
 
 ## ★ Comfortable Main menu
 - Pins, Playlists, Albums, all in one place
