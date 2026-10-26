@@ -1,0 +1,175 @@
+diff --git a/src/main/java/com/reikoonya/musikoo/ui/PlayerScreen.kt b/src/main/java/com/reikoonya/musikoo/ui/PlayerScreen.kt
+index 9999999..0000000 100644
+--- a/src/main/java/com/reikoonya/musikoo/ui/PlayerScreen.kt
++++ b/src/main/java/com/reikoonya/musikoo/ui/PlayerScreen.kt
+@@ -1,5 +1,6 @@
+ package com.reikoonya.musikoo.ui
+
+ import android.app.Activity
++import android.content.Context
+ import android.widget.Toast
+ import androidx.activity.compose.rememberLauncherForActivityResult
+ import androidx.activity.result.IntentSenderRequest
+@@ -17,6 +18,8 @@ import androidx.compose.animation.scaleOut
+ import androidx.compose.animation.togetherWith
+ import androidx.compose.foundation.Image
+ import androidx.compose.foundation.background
+ import androidx.compose.foundation.basicMarquee
++import androidx.compose.foundation.gestures.detectHorizontalDragGestures
++import androidx.compose.foundation.gestures.detectTapGestures
+ import androidx.compose.foundation.gestures.detectVerticalDragGestures
+ import androidx.compose.foundation.layout.Arrangement
+@@ -51,6 +54,8 @@ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.LaunchedEffect
+ import androidx.compose.runtime.getValue
+ import androidx.compose.runtime.mutableFloatStateOf
++import androidx.compose.runtime.mutableLongStateOf
+ import androidx.compose.runtime.mutableStateOf
+ import androidx.compose.runtime.produceState
+ import androidx.compose.runtime.remember
+@@ -62,6 +67,7 @@ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.draw.clip
+ import androidx.compose.ui.draw.shadow
+ import androidx.compose.ui.graphics.asImageBitmap
+ import androidx.compose.ui.graphics.graphicsLayer
+ import androidx.compose.ui.input.pointer.pointerInput
+ import androidx.compose.ui.layout.ContentScale
++import androidx.compose.ui.platform.LocalDensity
+ import androidx.compose.ui.layout.onSizeChanged
+ import androidx.compose.ui.platform.LocalContext
+@@ -93,8 +99,11 @@ fun PlayerScreen(
+     var pendingDeleteId by rememberSaveable { mutableStateOf<Long?>(null) }
+     var pendingNeedsRetry by rememberSaveable { mutableStateOf(false) }
+
+-    // Лирика открыта по умолчанию, как на скриншоте
+-    var showLyrics by rememberSaveable { mutableStateOf(true) }
++    // Запоминание положения экрана лирики: по умолчанию выключен
++    val prefs = remember(context) { context.getSharedPreferences("musikoo_prefs", Context.MODE_PRIVATE) }
++    var showLyrics by rememberSaveable {
++        mutableStateOf(prefs.getBoolean("show_lyrics_player", false))
++    }
+     var isScrubbing by remember { mutableStateOf(false) }
+
+     val scrubbingScale by animateFloatAsState(
+@@ -112,6 +121,13 @@ fun PlayerScreen(
+         label = "scrubbingCorner"
+     )
+
++    val coverScope = rememberCoroutineScope()
++    val coverSqueeze = remember { Animatable(1f) }
++    var coverWidthPx by remember { mutableFloatStateOf(1f) }
++    var doubleTapFeedback by remember { mutableStateOf<Boolean?>(null) }
++    var feedbackTrigger by remember { mutableLongStateOf(0L) }
++    var coverDrag by remember { mutableFloatStateOf(0f) }
++    val swipeThresholdPx = with(LocalDensity.current) { 72.dp.toPx() }
++
+     val currentSong = MusicPlayerManager.songs.getOrNull(MusicPlayerManager.currentSongIndex)
+         ?: songs.getOrNull(initialSongIndex.coerceIn(0, (songs.size - 1).coerceAtLeast(0)))
+
+@@ -124,6 +140,13 @@ fun PlayerScreen(
+         value = true to result
+     }
+
++    LaunchedEffect(feedbackTrigger) {
++        if (feedbackTrigger > 0L) {
++            kotlinx.coroutines.delay(650)
++            doubleTapFeedback = null
++        }
++    }
++
+     val deleteLauncher = rememberLauncherForActivityResult(
+         ActivityResultContracts.StartIntentSenderForResult()
+     ) { result ->
+@@ -262,7 +285,55 @@ fun PlayerScreen(
+                         Box(
+                             modifier = Modifier
+                                 .weight(1f, fill = false)
+                                 .fillMaxHeight(0.85f)
+                                 .aspectRatio(1f)
++                                .graphicsLayer {
++                                    scaleX = coverSqueeze.value * scrubbingScale
++                                    scaleY = coverSqueeze.value * scrubbingScale
++                                    translationX = coverDrag * 0.35f
++                                }
++                                .onSizeChanged { coverWidthPx = it.width.toFloat().coerceAtLeast(1f) }
++                                .pointerInput(Unit) {
++                                    detectTapGestures(
++                                        onDoubleTap = { offset ->
++                                            val isForward = offset.x >= coverWidthPx / 2f
++                                            val player = MusicPlayerManager.exoPlayer
++                                            if (player != null) {
++                                                val duration = player.duration.takeIf { it > 0 } ?: Long.MAX_VALUE
++                                                val target = (player.currentPosition + if (isForward) 10_000L else -10_000L).coerceIn(0L, duration)
++                                                MusicPlayerManager.seekTo(target)
++                                            }
++                                            doubleTapFeedback = isForward
++                                            feedbackTrigger = System.currentTimeMillis()
++                                            coverScope.launch {
++                                                coverSqueeze.animateTo(0.88f, tween(90))
++                                                coverSqueeze.animateTo(1f, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium))
++                                            }
++                                        }
++                                    )
++                                }
++                                .pointerInput(Unit) {
++                                    detectHorizontalDragGestures(
++                                        onDragStart = { coverDrag = 0f },
++                                        onHorizontalDrag = { change, amount ->
++                                            change.consume()
++                                            coverDrag += amount
++                                        },
++                                        onDragEnd = {
++                                            if (coverDrag < -swipeThresholdPx) MusicPlayerManager.skipNext()
++                                            else if (coverDrag > swipeThresholdPx) MusicPlayerManager.skipPrevious()
++                                            coverDrag = 0f
++                                        },
++                                        onDragCancel = { coverDrag = 0f }
++                                    )
++                                }
+                                 .clip(RoundedCornerShape(scrubbingCorner))
+                                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                             contentAlignment = Alignment.Center
+                         ) {
+                             if (currentSong?.albumArt != null) {
+                                 Image(bitmap = currentSong.albumArt.asImageBitmap(), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                             } else {
+                                 Icon(Icons.Rounded.MusicNote, null, modifier = Modifier.size(96.dp), tint = accent)
+                             }
++
++                            // Индикатор перемотки +10s / -10s
++                            AnimatedVisibility(
++                                visible = doubleTapFeedback != null,
++                                enter = fadeIn(tween(100)) + scaleIn(spring(dampingRatio = Spring.DampingRatioLowBouncy)),
++                                exit = fadeOut(tween(250)) + scaleOut(tween(250)),
++                                modifier = Modifier
++                                    .align(if (doubleTapFeedback == true) Alignment.CenterEnd else Alignment.CenterStart)
++                                    .padding(20.dp)
++                            ) {
++                                Surface(
++                                    shape = CircleShape,
++                                    color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f),
++                                    tonalElevation = 6.dp
++                                ) {
++                                    Text(
++                                        text = if (doubleTapFeedback == true) "+10s" else "-10s",
++                                        style = MaterialTheme.typography.titleMedium,
++                                        fontWeight = FontWeight.Bold,
++                                        color = accent,
++                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
++                                    )
++                                }
++                            }
+                         }
+@@ -359,7 +430,11 @@ fun PlayerScreen(
+             PlayerPills(
+                 accent = accent,
+                 onAccent = onAccent,
+                 lyricsOn = showLyrics,
+-                onToggleLyrics = { showLyrics = !showLyrics },
++                onToggleLyrics = {
++                    val next = !showLyrics
++                    showLyrics = next
++                    prefs.edit().putBoolean("show_lyrics_player", next).apply()
++                },
+                 onQueueClick = onQueueClick
+             )
