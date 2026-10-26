@@ -113,7 +113,7 @@ private fun GlassPill(
     modifier: Modifier = Modifier,
 ) {
     val fill by animateColorAsState(
-        targetValue = if (selected && LocalFancyStyle.current) accent.copy(alpha = 0.28f) else glassFill(),
+        targetValue = glassFill(),
         label = "pillFill"
     )
     val tint by animateColorAsState(

@@ -19,8 +19,8 @@ android {
         applicationId = "com.reikoonya.musikoo"
         minSdk = 31
         targetSdk = 37
-        versionCode = 16
-        versionName = "1.5.1"
+        versionCode = 17
+        versionName = "1.5.10"
 
         buildConfigField("String", "LASTFM_API_KEY", "\"${localProps.getProperty("API_KEY", "")}\"")
         buildConfigField("String", "LASTFM_API_SECRET", "\"${localProps.getProperty("API_SECRET", "")}\"")

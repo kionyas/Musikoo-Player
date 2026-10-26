@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -75,11 +76,16 @@ fun ArtBackdrop(
             label = "ArtBackdrop"
         ) { bmp ->
             if (bmp != null) {
-                val tiny = remember(bmp) { Bitmap.createScaledBitmap(bmp, 48, 48, true) }
+                // Android 12+: a decent-resolution bitmap + a real, very strong GPU blur.
+                // Older versions have no blur, so a small bitmap smoothly stretched with high-quality filtering.
+                val nativeBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                val side = if (nativeBlur) 192 else 32
+                val scaled = remember(bmp, side) { Bitmap.createScaledBitmap(bmp, side, side, true) }
                 Image(
-                    bitmap = tiny.asImageBitmap(),
+                    bitmap = scaled.asImageBitmap(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
+                    filterQuality = FilterQuality.High,
                     colorFilter = ColorFilter.colorMatrix(
                         ColorMatrix().apply { setToSaturation(saturation) }
                     ),
@@ -89,6 +95,9 @@ fun ArtBackdrop(
                             scaleX = entranceScale
                             scaleY = entranceScale
                         }
+                        .then(
+                            if (nativeBlur) Modifier.blur(80.dp, BlurredEdgeTreatment.Unbounded) else Modifier
+                        )
                 )
             } else {
                 Box(

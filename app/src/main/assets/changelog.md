@@ -1,5 +1,16 @@
-## 1.4.2
-- test
+# 1.5.10 HF
+
+## Fixes
+- Fixed cover blur
+- Fixed white theme accents 
+
+# 1.5.1
+
+## QOL & Fixes
+- Optimization
+- Visual Polish
+- New gestures and settings
+- rip cover bg
 
 ## 1.4.1
 

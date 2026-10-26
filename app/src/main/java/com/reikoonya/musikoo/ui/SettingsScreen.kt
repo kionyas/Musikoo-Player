@@ -89,6 +89,7 @@ import com.reikoonya.musikoo.ui.components.glassStroke
 import com.reikoonya.musikoo.ui.components.listItemColors
 import com.reikoonya.musikoo.ui.components.nowPlayingArt
 import com.reikoonya.musikoo.ui.theme.ColorThemeMode
+import com.reikoonya.musikoo.ui.theme.ThemeBrightness
 import com.reikoonya.musikoo.ui.theme.UiStyle
 import com.reikoonya.musikoo.util.AppIconMode
 
@@ -115,6 +116,8 @@ fun SettingsScreen(
     onShapeFamilyChange: (ShapeFamily) -> Unit = {},
     fontChoice: FontChoice = FontChoice.BASE,
     onFontChoiceChange: (FontChoice) -> Unit = {},
+    themeBrightness: ThemeBrightness = ThemeBrightness.SYSTEM,
+    onThemeBrightnessChange: (ThemeBrightness) -> Unit = {},
     colorThemeMode: ColorThemeMode,
     onColorThemeModeChange: (ColorThemeMode) -> Unit,
     appIconMode: AppIconMode,
@@ -384,7 +387,7 @@ fun SettingsScreen(
                                 SettingsCardItem(
                                     icon = Icons.Rounded.Palette,
                                     title = "Theme & Font",
-                                    description = "Color theme and typeface",
+                                    description = "Light / dark, color theme and typeface",
                                     grouped = true,
                                     onClick = { sheetName = SettingsSheet.THEME_FONT.name }
                                 )
@@ -570,6 +573,39 @@ fun SettingsScreen(
                             SettingsSheet.THEME_FONT -> {
                                 SettingsCardItem(
                                     onSheet = true,
+                                    icon = Icons.Rounded.DarkMode,
+                                    title = "Light / Dark",
+                                    description = "Current: ${
+                                        when (themeBrightness) {
+                                            ThemeBrightness.SYSTEM -> "System"
+                                            ThemeBrightness.LIGHT -> "Light"
+                                            ThemeBrightness.DARK -> "Dark"
+                                        }
+                                    }"
+                                )
+                                StyleOptionCard(
+                                    title = "System",
+                                    description = "Follow the phone's light or dark mode",
+                                    selected = themeBrightness == ThemeBrightness.SYSTEM,
+                                    onClick = { onThemeBrightnessChange(ThemeBrightness.SYSTEM) }
+                                )
+                                StyleOptionCard(
+                                    title = "Light",
+                                    description = "Always light",
+                                    selected = themeBrightness == ThemeBrightness.LIGHT,
+                                    onClick = { onThemeBrightnessChange(ThemeBrightness.LIGHT) }
+                                )
+                                StyleOptionCard(
+                                    title = "Dark",
+                                    description = "Always dark",
+                                    selected = themeBrightness == ThemeBrightness.DARK,
+                                    onClick = { onThemeBrightnessChange(ThemeBrightness.DARK) }
+                                )
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                SettingsCardItem(
+                                    onSheet = true,
                                     icon = Icons.Rounded.Palette,
                                     title = stringResource(R.string.color_theme),
                                     description = "Current theme: ${
@@ -629,7 +665,7 @@ fun SettingsScreen(
                                     description = "Current: ${
                                         when (uiStyle) {
                                             UiStyle.CLASSIC -> "Solid"
-                                            UiStyle.EXPENSIVE -> "Solid"
+                                            UiStyle.EXPENSIVE -> "Expensive"
                                         }
                                     }"
                                 )
@@ -733,7 +769,7 @@ fun SettingsScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val backShape = expressiveBadgeShape("back".hashCode())
+            val backShape = CircleShape
             Surface(
                 modifier = Modifier
                     .size(44.dp)

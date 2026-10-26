@@ -75,6 +75,7 @@ import com.reikoonya.musikoo.ui.*
 import com.reikoonya.musikoo.ui.ArtistsScreen
 import com.reikoonya.musikoo.ui.ArtistDetailScreen
 import com.reikoonya.musikoo.ui.theme.MusikooTheme
+import com.reikoonya.musikoo.ui.theme.ThemeBrightness
 import com.reikoonya.musikoo.ui.components.UpdateDialog
 import com.reikoonya.musikoo.util.UpdateManager
 import com.reikoonya.musikoo.util.AppIconManager
@@ -118,12 +119,20 @@ class MainActivity : ComponentActivity() {
             var currentShapeFamily by remember { mutableStateOf(UiStylePrefs.loadShapeFamily(styleContext)) }
             var currentFontChoice by remember { mutableStateOf(UiStylePrefs.loadFontChoice(styleContext)) }
             var currentColorThemeMode by remember { mutableStateOf(UiStylePrefs.loadColorMode(styleContext)) }
+            var currentBrightness by remember { mutableStateOf(UiStylePrefs.loadBrightness(styleContext)) }
+            val systemDark = androidx.compose.foundation.isSystemInDarkTheme()
+            val useDarkTheme = when (currentBrightness) {
+                ThemeBrightness.SYSTEM -> systemDark
+                ThemeBrightness.LIGHT -> false
+                ThemeBrightness.DARK -> true
+            }
             var currentAppIconMode by remember { mutableStateOf(AppIconManager.loadIconMode(styleContext)) }
 
             val currentPlayingSong = MusicPlayerManager.songs.getOrNull(MusicPlayerManager.currentSongIndex)
             val currentPlayingArt = rememberSongArt(currentPlayingSong)
 
             MusikooTheme(
+                darkTheme = useDarkTheme,
                 colorThemeMode = currentColorThemeMode,
                 uiStyle = currentUiStyle,
                 shapeFamily = currentShapeFamily,
@@ -470,6 +479,12 @@ class MainActivity : ComponentActivity() {
                                     onUiStyleChange = { newStyle ->
                                         currentUiStyle = newStyle
                                         UiStylePrefs.saveStyle(context, newStyle)
+                                    },
+                                    themeBrightness = currentBrightness,
+                                    onThemeBrightnessChange = { newBrightness ->
+                                        currentBrightness = newBrightness
+                                        UiStylePrefs.saveBrightness(context, newBrightness)
+                                        com.reikoonya.musikoo.widget.MusicWidget.updateAppearance(context)
                                     },
                                     colorThemeMode = currentColorThemeMode,
                                     onColorThemeModeChange = { newMode ->

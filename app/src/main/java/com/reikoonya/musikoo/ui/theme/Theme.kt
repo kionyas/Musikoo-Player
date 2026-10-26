@@ -17,6 +17,9 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
@@ -31,7 +34,7 @@ val Md3Shapes = Shapes(
     extraLarge = RoundedCornerShape(28.dp),
 )
 
-private val DarkColorScheme = darkColorScheme(
+internal val DarkColorScheme = darkColorScheme(
     primary = ExpressiveDarkPrimary,
     onPrimary = ExpressiveDarkOnPrimary,
     primaryContainer = ExpressiveDarkPrimaryContainer,
@@ -59,7 +62,7 @@ private val DarkColorScheme = darkColorScheme(
     surfaceContainerHighest = ExpressiveDarkSurfaceContainerHighest,
 )
 
-private val LightColorScheme = lightColorScheme(
+internal val LightColorScheme = lightColorScheme(
     primary = ExpressiveLightPrimary,
     onPrimary = ExpressiveLightOnPrimary,
     primaryContainer = ExpressiveLightPrimaryContainer,
@@ -87,7 +90,7 @@ private val LightColorScheme = lightColorScheme(
     surfaceContainerHighest = ExpressiveLightSurfaceContainerHighest,
 )
 
-private val ClassicDarkColorScheme = darkColorScheme(
+internal val ClassicDarkColorScheme = darkColorScheme(
     primary = Color(0xFFE6E6E6),
     onPrimary = Color(0xFF121212),
     primaryContainer = Color(0xFF333333),
@@ -109,7 +112,7 @@ private val ClassicDarkColorScheme = darkColorScheme(
     surfaceContainerHighest = Color(0xFF303030)
 )
 
-private val ClassicLightColorScheme = lightColorScheme(
+internal val ClassicLightColorScheme = lightColorScheme(
     primary = Color(0xFF1A1A1A),
     onPrimary = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFFE8E8E8),
@@ -205,6 +208,20 @@ fun MusikooTheme(
     }
 
     val isFancy = uiStyle != UiStyle.CLASSIC
+
+    // Status / navigation bar icons must contrast with the chosen (maybe forced) light or dark theme
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            var ctx = view.context
+            while (ctx is android.content.ContextWrapper && ctx !is android.app.Activity) ctx = ctx.baseContext
+            val window = (ctx as? android.app.Activity)?.window ?: return@SideEffect
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = !darkTheme
+                isAppearanceLightNavigationBars = !darkTheme
+            }
+        }
+    }
 
     CompositionLocalProvider(
         LocalUiStyle provides uiStyle,

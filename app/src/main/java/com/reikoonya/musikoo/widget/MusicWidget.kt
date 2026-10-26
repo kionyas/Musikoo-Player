@@ -215,17 +215,27 @@ private class Palette(
 private fun paletteFor(context: Context, art: Bitmap?): Palette {
     val (light, dark) = when (UiStylePrefs.loadColorMode(context)) {
         ColorThemeMode.DYNAMIC ->
-            dynamicLightColorScheme(context) to dynamicDarkColorScheme(context)
+            if (android.os.Build.VERSION.SDK_INT >= 31) {
+                dynamicLightColorScheme(context) to dynamicDarkColorScheme(context)
+            } else {
+                com.reikoonya.musikoo.ui.theme.LightColorScheme to com.reikoonya.musikoo.ui.theme.DarkColorScheme
+            }
         ColorThemeMode.CLASSIC ->
-            lightColorScheme() to darkColorScheme()
+            com.reikoonya.musikoo.ui.theme.ClassicLightColorScheme to com.reikoonya.musikoo.ui.theme.ClassicDarkColorScheme
         ColorThemeMode.COVER -> {
-            val accentLight = art?.let { accentFromBitmap(it, dark = false) }
-            val accentDark = art?.let { accentFromBitmap(it, dark = true) }
-            (accentLight?.let { lightColorScheme(primary = it, onPrimary = readableOn(it)) } ?: lightColorScheme()) to
-                (accentDark?.let { darkColorScheme(primary = it, onPrimary = readableOn(it)) } ?: darkColorScheme())
+            // Same tonal scheme as in the app, so the widget matches it in both light and dark
+            (art?.let { com.reikoonya.musikoo.ui.theme.monetSchemeFromBitmap(it, dark = false) }
+                ?: com.reikoonya.musikoo.ui.theme.LightColorScheme) to
+                (art?.let { com.reikoonya.musikoo.ui.theme.monetSchemeFromBitmap(it, dark = true) }
+                    ?: com.reikoonya.musikoo.ui.theme.DarkColorScheme)
         }
     }
-    fun pick(light: Color, dark: Color): ColorProvider = colorProviderOf(light, dark)
+    val brightness = UiStylePrefs.loadBrightness(context)
+    fun pick(light: Color, dark: Color): ColorProvider = when (brightness) {
+        com.reikoonya.musikoo.ui.theme.ThemeBrightness.SYSTEM -> colorProviderOf(light, dark)
+        com.reikoonya.musikoo.ui.theme.ThemeBrightness.LIGHT -> colorProviderOf(light, light)
+        com.reikoonya.musikoo.ui.theme.ThemeBrightness.DARK -> colorProviderOf(dark, dark)
+    }
     return Palette(
         surface = pick(light.surface, dark.surface),
         onSurface = pick(light.onSurface, dark.onSurface),

@@ -18,6 +18,13 @@ enum class FontChoice {
     LORA
 }
 
+/** Light / dark choice: follow the system or force one of them. */
+enum class ThemeBrightness {
+    SYSTEM,
+    LIGHT,
+    DARK
+}
+
 enum class ColorThemeMode {
     DYNAMIC,
     CLASSIC,

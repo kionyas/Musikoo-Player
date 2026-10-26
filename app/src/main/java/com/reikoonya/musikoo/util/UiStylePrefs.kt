@@ -2,6 +2,7 @@ package com.reikoonya.musikoo.util
 
 import com.reikoonya.musikoo.ui.theme.FontChoice
 import com.reikoonya.musikoo.ui.theme.ShapeFamily
+import com.reikoonya.musikoo.ui.theme.ThemeBrightness
 import android.content.Context
 import com.reikoonya.musikoo.ui.theme.ColorThemeMode
 import com.reikoonya.musikoo.ui.theme.UiStyle
@@ -84,6 +85,25 @@ object UiStylePrefs {
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_COLOR_MODE, mode.name)
+            .apply()
+    }
+
+    private const val KEY_BRIGHTNESS = "theme_brightness"
+
+    fun loadBrightness(context: Context): ThemeBrightness {
+        val name = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+            .getString(KEY_BRIGHTNESS, ThemeBrightness.SYSTEM.name)
+        return try {
+            ThemeBrightness.valueOf(name ?: ThemeBrightness.SYSTEM.name)
+        } catch (_: Exception) {
+            ThemeBrightness.SYSTEM
+        }
+    }
+
+    fun saveBrightness(context: Context, mode: ThemeBrightness) {
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_BRIGHTNESS, mode.name)
             .apply()
     }
 

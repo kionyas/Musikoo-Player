@@ -42,6 +42,8 @@ import androidx.compose.ui.unit.sp
 import com.reikoonya.musikoo.lyrics.LyricLine
 import com.reikoonya.musikoo.lyrics.LyricsResult
 import com.reikoonya.musikoo.ui.components.LoadingScreen
+import com.reikoonya.musikoo.ui.theme.LocalUiStyle
+import com.reikoonya.musikoo.ui.theme.UiStyle
 import com.reikoonya.musikoo.util.MusicPlayerManager
 import kotlinx.coroutines.delay
 import kotlin.math.abs
@@ -93,6 +95,8 @@ fun LyricsPanel(lyrics: LyricsResult?, loaded: Boolean, visible: Boolean, accent
                     }
                 }
 
+                // Edge fades only for the plain (Classic) style; Expensive shows lyrics without them
+                if (LocalUiStyle.current == UiStyle.CLASSIC) {
                 // Top blur gradient
                 Box(
                     Modifier
@@ -124,6 +128,7 @@ fun LyricsPanel(lyrics: LyricsResult?, loaded: Boolean, visible: Boolean, accent
                             )
                         )
                 )
+                }
             }
             if (lyrics != null && lyrics.lines.isNotEmpty()) {
                 val kind = when (lyrics.level) {
@@ -203,7 +208,7 @@ private fun LyricRow(line: LyricLine, index: Int, active: Int, positionMs: Long,
                 val lastIdx = line.words.lastIndex
                 line.words.forEachIndexed { i, w ->
                     val sang = positionMs >= w.startMs
-                    withStyle(SpanStyle(color = if (sang) accent else base)) { append(w.text) }
+                    withStyle(SpanStyle(color = if (sang) accent else base.copy(alpha = 0.55f))) { append(w.text) }
                     if (i < lastIdx && w.text.lastOrNull()?.isWhitespace() != true) append(" ")
                 }
             }
