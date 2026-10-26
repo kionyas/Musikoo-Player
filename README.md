@@ -1,6 +1,6 @@
-## ★ Musikoo-Player ★ 
+# ★ Musikoo-Player ★ 
 
-# ★ Comfortable Main menu
+## ★ Comfortable Main menu
 - Pins, Playlists, Albums, all in one place
 - Buttons for Artist and Songs Pages
 - Funny mini-player :D
@@ -9,7 +9,7 @@
 
 
 
-# ★ Utils
+## ★ Utils
 - Highly customizable playlists
 - Tag (Metadata) editor, you can change anything!
 - Change queue as you want everywhere
@@ -18,15 +18,16 @@
 
 
 
-# ★ Design & Statistics 
+## ★ Design & Statistics 
 - Scrobble in my app, you can add your LastFM account!!
 - Stylish MD3 design with smooth animations and light perfomace
 - Style, Color, Icon customization!!
 <img width="2400" height="2400" alt="collage_7" src="https://github.com/user-attachments/assets/8f5bff01-3f28-4b7b-bb2e-9be227bd6399" />
 
-## Installation
+# Installation
 - Download APK from https://github.com/kionyas/Musikoo-Player/releases/latest
 - Install and enjoy!
 
+## Join for early updates 
 - https://t.me/reikoonya1
 
