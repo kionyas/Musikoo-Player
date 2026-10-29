@@ -1,6 +1,7 @@
 <div align="center">
 
-<img src="docs/banner.jpg" alt="Musikoo banner" width="100%"/>
+<img width="1024" height="1024" alt="app-icon-white-rounded" src="https://github.com/user-attachments/assets/ccb4d4c3-4ecb-404a-97ad-b5e4d945d3f3" />
+
 
 # 🎧 Musikoo
 
@@ -26,20 +27,17 @@ Musikoo plays the music that is already on your phone: no streaming accounts, no
 
 ### 🎵 Library
 - Browse by **Albums, Artists, Genres, Songs, Playlists** and **Pins**
-- **Genre browsing by tag**: open a genre and get its tracks in an albums-style view
-- Fast search, sort by *A–Z* or *Most tracks*
-- Playlists, queue ("Up next") and a **Random** shuffle button
-- Scroll position is remembered between screens
+- Playlists, Pins, Swipes, sooooooooo many gestures and smoothness 
 
 ### ▶️ Player
 - Media3 / ExoPlayer playback with a system media notification and lock-screen controls
 - Mini player with **configurable swipe gestures**: favorite, next, previous, play/pause, or hide
-- Full player with a **wavy progress slider** and playback speed control
+- Full player with a **M3E** and some more features 
 - Album-art backdrop and colors extracted from the cover
 
 ### 📝 Lyrics
-- **Word-synced lyrics** from KuGou with fallback to [LRCLIB](https://lrclib.net)
-- Current line is highlighted, the rest is softly blurred
+- **Word-synced lyrics** from resources with fallback to [LRCLIB](https://lrclib.net) and [lrcmux](https://lrcmux.dev/)
+- Blured recognizable style :D
 
 ### 🏷️ Tag editor
 - Edit tags right in the app: title, artist, album, album artist, composer, lyricist, genre, year, track, disc, comment
@@ -73,12 +71,10 @@ Make the home screen yours: **Settings → Interface → Bottom Bar**.
 <div align="center">
 
 | Home | Player & lyrics | Genres |
-|:---:|:---:|:---:|
-| <img src="docs/screenshots/home.jpg" width="250"/> | <img src="docs/screenshots/player.jpg" width="250"/> | <img src="docs/screenshots/genres.jpg" width="250"/> |
+| <img width="1703" height="1100" alt="collage-2" src="https://github.com/user-attachments/assets/1cff744a-5e9b-4f09-8efc-0bfa0451d97a" /> |
 
-| Statistics | Settings | Bottom bar setup |
-|:---:|:---:|:---:|
-| <img src="docs/screenshots/stats.jpg" width="250"/> | <img src="docs/screenshots/settings.jpg" width="250"/> | <img src="docs/screenshots/bottom-bar.jpg" width="250"/> |
+| Statistics | Bottom bar setup | Settings |
+| <img width="1703" height="1100" alt="collage2" src="https://github.com/user-attachments/assets/256b07ef-1924-4bab-9a61-e22d11ab40f1" /> |
 
 </div>
 
@@ -103,12 +99,10 @@ Later updates can be installed from inside the app (*Settings → Download Manag
 
 ## 🛠 Tech stack
 
-- **Kotlin** + **Jetpack Compose** (Material 3 / Expressive)
+- **Kotlin** + **Jetpack Compose**
 - **AndroidX Media3** (ExoPlayer, MediaSession)
-- **Jetpack Glance** for widgets
-- **Palette** for cover-based colors
 - **JAudioTagger** for tag reading and writing
-- **LRCLIB**, **KuGou** and **Last.fm** APIs
+- **LRCLIB**, **lrcmux** and **Last.fm** APIs
 
 ## 🏗 Build from source
 
