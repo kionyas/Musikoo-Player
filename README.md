@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎧 Musikoo
+# ★ Musikoo
 
 **A local music player for Android with Material 3 Expressive design, word-synced lyrics and a fully customizable home screen.**
 
@@ -12,16 +12,13 @@
 
 [Download](https://github.com/kionyas/Musikoo-Player/releases/latest) · [Features](#-features) · [Screenshots](#-screenshots) · [Build](#-build-from-source)
 
-<img width="735" height="428" alt="banner" src="https://github.com/user-attachments/assets/bc253328-5c8a-4122-8c09-6d12207b4cef" />
+<img width="735" height="428" alt="image" src="https://github.com/user-attachments/assets/43c5cf38-98f0-4a0a-b733-54812d945a8e" />
+
 
 
 </div>
 
 ---
-
-## ✨ About
-
-Musikoo plays the music that is already on your phone: no streaming accounts, no ads. It is built with Jetpack Compose and leans on expressive Material 3 shapes, wavy progress sliders, album-art-driven colors and smooth motion everywhere.
 
 ## 🚀 Features
 
