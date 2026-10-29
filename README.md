@@ -1,8 +1,5 @@
 <div align="center">
 
-<img width="1024" height="1024" alt="app-icon-white-rounded" src="https://github.com/user-attachments/assets/ccb4d4c3-4ecb-404a-97ad-b5e4d945d3f3" />
-
-
 # 🎧 Musikoo
 
 **A local music player for Android with Material 3 Expressive design, word-synced lyrics and a fully customizable home screen.**
