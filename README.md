@@ -68,10 +68,10 @@ Make the home screen yours: **Settings → Interface → Bottom Bar**.
 <div align="center">
 
 | Home | Player & lyrics | Genres |
-| <img width="1703" height="1100" alt="collage-2" src="https://github.com/user-attachments/assets/1cff744a-5e9b-4f09-8efc-0bfa0451d97a" /> |
+<img width="1703" height="1100" alt="collage-2" src="https://github.com/user-attachments/assets/1cff744a-5e9b-4f09-8efc-0bfa0451d97a" /> 
 
 | Statistics | Bottom bar setup | Settings |
-| <img width="1703" height="1100" alt="collage2" src="https://github.com/user-attachments/assets/256b07ef-1924-4bab-9a61-e22d11ab40f1" /> |
+<img width="1703" height="1100" alt="collage2" src="https://github.com/user-attachments/assets/256b07ef-1924-4bab-9a61-e22d11ab40f1" /> 
 
 </div>
 
