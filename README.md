@@ -116,7 +116,7 @@ Open the project in **Android Studio**, let Gradle sync, then run the app on a d
 com.reikoonya.musikoo
 ├── data/        scanner, database, playlists, art cache
 ├── library/     library view model
-├── lyrics/      LRCLIB / KuGou clients and repository
+├── lyrics/      LRCLIB / lrcmux clients and repository
 ├── scrobble/    Last.fm auth, scrobbler, stats
 ├── service/     media playback service
 ├── navigation/  screens and navigator
