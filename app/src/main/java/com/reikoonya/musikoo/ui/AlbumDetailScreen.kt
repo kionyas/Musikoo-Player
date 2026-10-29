@@ -1,5 +1,23 @@
 package com.reikoonya.musikoo.ui
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import com.reikoonya.musikoo.ui.components.GlassCircleButton
+import com.reikoonya.musikoo.ui.components.InlineSearchField
+import com.reikoonya.musikoo.ui.components.SearchNoResults
+import com.reikoonya.musikoo.ui.components.matchesQuery
+import com.reikoonya.musikoo.ui.components.rememberScreenSearchState
+import com.reikoonya.musikoo.ui.components.swipeDownToBack
+import com.reikoonya.musikoo.ui.components.CascadeText
 import com.reikoonya.musikoo.ui.components.coverShapeOf
 import com.reikoonya.musikoo.ui.components.PillTransition
 import com.reikoonya.musikoo.ui.components.shapeOf
@@ -73,6 +91,13 @@ fun AlbumDetailScreen(
     var addToPlaylistSongIds by remember { mutableStateOf<List<Long>?>(null) }
     var selectedSongIds by remember { mutableStateOf(emptySet<Long>()) }
     val isSelecting = selectedSongIds.isNotEmpty()
+    val keyboard = LocalSoftwareKeyboardController.current
+    val search = rememberScreenSearchState()
+    val shownSongs = remember(albumSongs, search.query) {
+        albumSongs.filter { matchesQuery(search.query, it.title, it.artist, it.album) }
+    }
+    // Search is a mode of its own: the system back button closes it first (selection mode has its own close button)
+    BackHandler(enabled = search.open && !isSelecting) { search.close() }
     val selectedSongs = remember(selectedSongIds, albumSongs) {
         albumSongs.filter { it.id in selectedSongIds }
     }
@@ -126,13 +151,7 @@ fun AlbumDetailScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .pointerInput(Unit) {
-                detectVerticalDragGestures { _, dragAmount ->
-                    if (dragAmount > 25f) {
-                        onBackClick()
-                    }
-                }
-            }
+            .swipeDownToBack(onBackClick)
     ) {
         ArtBackdrop(art = albumArt ?: nowPlayingArt(), topScrim = 0.55f, midScrim = 0.82f)
 
@@ -185,7 +204,7 @@ fun AlbumDetailScreen(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Text(
+                            CascadeText(
                                 text = albumName,
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
@@ -223,7 +242,10 @@ fun AlbumDetailScreen(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            itemsIndexed(albumSongs) { index, song ->
+            if (shownSongs.isEmpty() && search.filtering) {
+                item { SearchNoResults(search.query) }
+            }
+            itemsIndexed(shownSongs, key = { _, s -> s.id }) { index, song ->
                 val songArt = rememberSongArt(song)
                 val isSelected = song.id in selectedSongIds
                 Surface(
@@ -238,7 +260,7 @@ fun AlbumDetailScreen(
                             if (isSelecting) {
                                 selectedSongIds = if (isSelected) selectedSongIds - song.id else selectedSongIds + song.id
                             } else {
-                                onSongClick(albumSongs, index)
+                                onSongClick(shownSongs, index)
                             }
                         },
                     shape = shapeOf(26.dp),
@@ -353,6 +375,32 @@ fun AlbumDetailScreen(
                 }
             }
 
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                AnimatedContent(
+                    targetState = search.open && !isSelecting,
+                    transitionSpec = {
+                        (fadeIn(tween(220, delayMillis = 60)) +
+                            scaleIn(spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow), initialScale = 0.88f)) togetherWith
+                            fadeOut(tween(110)) using
+                            SizeTransform(clip = false) { _, _ ->
+                                spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)
+                            }
+                    },
+                    label = "topBarCenter"
+                ) { isSearching ->
+                    if (isSearching) {
+                        InlineSearchField(
+                            query = search.query,
+                            onQueryChange = { search.query = it },
+                            placeholder = "Search in album",
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainer,
@@ -450,23 +498,21 @@ fun AlbumDetailScreen(
                 }
                 }
             }
-
-            Surface(
-                modifier = Modifier
-                    .size(44.dp)
-                    .bounceClickable(shape = CircleShape) { onQueueClick() },
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                border = glassStroke(),
-                tonalElevation = 3.dp
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.QueueMusic,
-                        contentDescription = stringResource(R.string.queue),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
+                    }
                 }
+            }
+
+            if (isSelecting) {
+                Spacer(modifier = Modifier.size(44.dp))
+            } else {
+                GlassCircleButton(
+                    icon = if (search.open) Icons.Rounded.Close else Icons.Rounded.Search,
+                    contentDescription = if (search.open) "Close search" else "Search",
+                    onClick = {
+                        keyboard?.hide()
+                        search.toggle()
+                    }
+                )
             }
         }
     }

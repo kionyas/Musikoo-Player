@@ -13,6 +13,16 @@ enum class ShapeFamily {
     MD3E
 }
 
+/** What a horizontal swipe on the mini player does (configured in Settings -> Mini-player Gestures). */
+enum class MiniSwipeAction(val title: String) {
+    FAVORITE("Favorite"),
+    HIDE("Hide mini player"),
+    NEXT("Next track"),
+    PREVIOUS("Previous track"),
+    PLAY_PAUSE("Play / Pause"),
+    NONE("Nothing")
+}
+
 enum class FontChoice {
     BASE,
     LORA

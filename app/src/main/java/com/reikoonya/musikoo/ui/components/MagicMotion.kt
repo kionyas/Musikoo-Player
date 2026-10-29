@@ -22,7 +22,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -31,10 +34,12 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.reikoonya.musikoo.util.MusicPlayerManager
+import com.reikoonya.musikoo.util.UiStylePrefs
 import kotlinx.coroutines.delay
 
 /**
@@ -47,14 +52,15 @@ fun MagicArt(
     modifier: Modifier = Modifier.fillMaxSize(),
     placeholder: @Composable () -> Unit,
 ) {
-    val duration = 700
+    val live = liveAnimationsEnabled()
+    val duration = if (live) 700 else 300
     AnimatedContent(
         targetState = art,
         modifier = modifier,
         transitionSpec = {
             // The old cover stays opaque until the new one has fully arrived: no dark dip in the middle
             fadeIn(tween(duration, easing = FastOutSlowInEasing)) togetherWith
-                fadeOut(tween(120, delayMillis = duration - 100)) using
+                fadeOut(tween(120, delayMillis = (duration - 100).coerceAtLeast(0))) using
                 SizeTransform(clip = false)
         },
         label = "magicArt"
@@ -62,15 +68,16 @@ fun MagicArt(
         val blur by transition.animateDp(
             transitionSpec = { tween(duration, easing = FastOutSlowInEasing) },
             label = "magicBlur"
-        ) { state -> if (state == EnterExitState.Visible) 0.dp else 22.dp }
+        ) { state -> if (!live || !UiStylePrefs.blurEnabled || state == EnterExitState.Visible) 0.dp else 22.dp }
         val scale by transition.animateFloat(
             transitionSpec = { tween(duration, easing = FastOutSlowInEasing) },
             label = "magicScale"
         ) { state ->
-            when (state) {
-                EnterExitState.Visible -> 1f
-                EnterExitState.PreEnter -> 1.16f
-                EnterExitState.PostExit -> 0.92f
+            when {
+                !live -> 1f
+                state == EnterExitState.Visible -> 1f
+                state == EnterExitState.PreEnter -> 1.16f
+                else -> 0.92f
             }
         }
         Box(
@@ -114,12 +121,16 @@ fun TrackTextSwap(
         targetState = label,
         modifier = modifier,
         transitionSpec = {
-            val dir = if (MusicPlayerManager.lastTransitionForward) 1 else -1
-            (slideInHorizontally(tween(460, easing = FastOutSlowInEasing)) { it * dir / 3 } +
-                fadeIn(tween(340, delayMillis = 90))) togetherWith
-                (slideOutHorizontally(tween(320, easing = FastOutSlowInEasing)) { -it * dir / 3 } +
-                    fadeOut(tween(160))) using
-                SizeTransform(clip = true)
+            if (!UiStylePrefs.liveAnimations) {
+                fadeIn(tween(220)) togetherWith fadeOut(tween(160)) using SizeTransform(clip = true)
+            } else {
+                val dir = if (MusicPlayerManager.lastTransitionForward) 1 else -1
+                (slideInHorizontally(tween(460, easing = FastOutSlowInEasing)) { it * dir / 3 } +
+                    fadeIn(tween(340, delayMillis = 90))) togetherWith
+                    (slideOutHorizontally(tween(320, easing = FastOutSlowInEasing)) { -it * dir / 3 } +
+                        fadeOut(tween(160))) using
+                    SizeTransform(clip = true)
+            }
         },
         label = "trackTextSwap"
     ) { l -> content(l) }
@@ -128,15 +139,77 @@ fun TrackTextSwap(
 /**
  * Elements rise and fade in one after another when a screen opens. [index] sets the order.
  * A negative [offsetY] makes the element come down from above.
+ *
+ * Works only with "Live Animations" on; otherwise the element is simply there.
+ * With [once] the entrance is not replayed when the element returns to the composition
+ * (for items of a scrolling list): use it inside LazyColumn / LazyGrid.
  */
-fun Modifier.staggeredEntrance(index: Int, offsetY: Dp = 28.dp): Modifier = composed {
-    val progress = remember { Animatable(0f) }
+/**
+ * Память каскада плиток главного экрана: сыграл один раз за запуск приложения и больше не повторяется
+ * (ни при возврате на экран, ни при раскрытии секций, ни при прокрутке, ни при смене страницы).
+ */
+object TileCascadeMemory {
+    @Volatile
+    var finished = false
+        private set
+    private var windowStarted = false
+
+    /** Окно каскада открывается при первом показе плиток и закрывается, когда последняя плитка доиграла. */
+    fun startWindowIfNeeded(): Boolean {
+        if (finished) return false
+        windowStarted = true
+        return true
+    }
+
+    fun finish() {
+        finished = true
+    }
+}
+
+/** Каскад для плиток главного экрана: проигрывается ровно один раз за запуск приложения. */
+fun Modifier.tileCascade(index: Int, offsetY: Dp = 20.dp): Modifier = composed {
+    val appContext = LocalContext.current.applicationContext
+    remember { UiStylePrefs.ensureLoaded(appContext) }
+    // Решение принимается один раз при появлении плитки: если каскад уже сыгран, плитка сразу на месте
+    val skip = remember { !TileCascadeMemory.startWindowIfNeeded() }
+    val progress = remember { Animatable(if (skip) 1f else 0f) }
     LaunchedEffect(Unit) {
-        delay(70L * index + 80L)
-        progress.animateTo(1f, spring(dampingRatio = 0.78f, stiffness = Spring.StiffnessLow))
+        if (progress.value >= 1f) return@LaunchedEffect
+        if (!UiStylePrefs.liveAnimations) {
+            progress.snapTo(1f)
+        } else {
+            delay(70L * index.coerceAtMost(10) + 80L)
+            progress.animateTo(1f, spring(dampingRatio = 0.78f, stiffness = Spring.StiffnessLow))
+        }
+        // Первый запуск сыгран (или отключён): больше не повторяем
+        TileCascadeMemory.finish()
     }
     val offsetPx = with(LocalDensity.current) { offsetY.toPx() }
     graphicsLayer {
+        if (!UiStylePrefs.liveAnimations || progress.value >= 1f) return@graphicsLayer
+        alpha = progress.value.coerceIn(0f, 1f)
+        translationY = (1f - progress.value) * offsetPx
+    }
+}
+
+fun Modifier.staggeredEntrance(index: Int, offsetY: Dp = 28.dp, once: Boolean = false): Modifier = composed {
+    val appContext = LocalContext.current.applicationContext
+    remember { UiStylePrefs.ensureLoaded(appContext) }
+    var played by rememberSaveable { mutableStateOf(false) }
+    val progress = remember { Animatable(if (once && played) 1f else 0f) }
+    LaunchedEffect(Unit) {
+        if (progress.value >= 1f) return@LaunchedEffect
+        if (!UiStylePrefs.liveAnimations) {
+            progress.snapTo(1f)
+        } else {
+            delay(70L * index.coerceAtMost(10) + 80L)
+            progress.animateTo(1f, spring(dampingRatio = 0.78f, stiffness = Spring.StiffnessLow))
+        }
+        played = true
+    }
+    val offsetPx = with(LocalDensity.current) { offsetY.toPx() }
+    graphicsLayer {
+        if (!UiStylePrefs.liveAnimations) return@graphicsLayer
         alpha = progress.value.coerceIn(0f, 1f)
         translationY = (1f - progress.value) * offsetPx
     }

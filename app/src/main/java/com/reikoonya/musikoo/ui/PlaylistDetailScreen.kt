@@ -1,5 +1,22 @@
 package com.reikoonya.musikoo.ui
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import com.reikoonya.musikoo.ui.components.GlassCircleButton
+import com.reikoonya.musikoo.ui.components.InlineSearchField
+import com.reikoonya.musikoo.ui.components.SearchNoResults
+import com.reikoonya.musikoo.ui.components.matchesQuery
+import com.reikoonya.musikoo.ui.components.rememberScreenSearchState
+import com.reikoonya.musikoo.ui.components.CascadeText
 import com.reikoonya.musikoo.ui.components.coverShapeOf
 import com.reikoonya.musikoo.ui.components.PillTransition
 import com.reikoonya.musikoo.ui.components.shapeOf
@@ -64,6 +81,7 @@ fun PlaylistDetailScreen(
     onSongClick: (List<Song>, Int) -> Unit,
     onQueueClick: () -> Unit = {},
     onBackClick: () -> Unit,
+    onAddSongs: () -> Unit = {},
     onPlaylistDeleted: () -> Unit
 ) {
     val context = LocalContext.current
@@ -108,6 +126,13 @@ fun PlaylistDetailScreen(
     var editSongs by remember { mutableStateOf<List<Song>?>(null) }
     var selectedSongIds by remember { mutableStateOf(emptySet<Long>()) }
     val isSelecting = selectedSongIds.isNotEmpty()
+    val keyboard = LocalSoftwareKeyboardController.current
+    val search = rememberScreenSearchState()
+    val shownSongs = remember(orderedSongs, search.query) {
+        orderedSongs.filter { matchesQuery(search.query, it.title, it.artist, it.album) }
+    }
+    // Search is a mode of its own: the system back button closes it first (selection mode has its own close button)
+    BackHandler(enabled = search.open && !isSelecting) { search.close() }
     val selectedSongs = remember(selectedSongIds, orderedSongs) {
         orderedSongs.filter { it.id in selectedSongIds }
     }
@@ -219,7 +244,7 @@ fun PlaylistDetailScreen(
                             modifier = Modifier.size(90.dp)
                         )
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
+                            CascadeText(
                                 text = playlist.name,
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
@@ -262,6 +287,9 @@ fun PlaylistDetailScreen(
                                         tint = if (playlist.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
+                                IconButton(onClick = onAddSongs) {
+                                    Icon(Icons.Rounded.Add, contentDescription = "Add songs")
+                                }
                                 IconButton(onClick = { showEditDialog = true }) {
                                     Icon(Icons.Rounded.Edit, contentDescription = null)
                                 }
@@ -279,7 +307,10 @@ fun PlaylistDetailScreen(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            itemsIndexed(orderedSongs, key = { _, s -> s.id }) { index, song ->
+            if (shownSongs.isEmpty() && search.filtering) {
+                item { SearchNoResults(search.query) }
+            }
+            itemsIndexed(shownSongs, key = { _, s -> s.id }) { index, song ->
                 val songArt = rememberSongArt(song)
                 val isDragging = draggingId == song.id
                 val isSelected = song.id in selectedSongIds
@@ -298,7 +329,7 @@ fun PlaylistDetailScreen(
                             if (isSelecting) {
                                 selectedSongIds = if (isSelected) selectedSongIds - song.id else selectedSongIds + song.id
                             } else {
-                                onSongClick(orderedSongs, index)
+                                onSongClick(shownSongs, index)
                             }
                         },
                     shape = shapeOf(26.dp),
@@ -375,18 +406,20 @@ fun PlaylistDetailScreen(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
                                 .size(40.dp)
-                                .clip(CircleShape)
-                                .clickable { actionSong = song }
+                                .bounceClickable(pressedScale = 0.82f, shape = CircleShape) { actionSong = song }
                                 .padding(6.dp)
                         )
                         // Drag handle: long-press and drag to move the song
                         Icon(
                             imageVector = Icons.Rounded.DragHandle,
                             contentDescription = "Drag to reorder",
-                            tint = if (isDragging) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = (if (isDragging) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                .copy(alpha = if (search.filtering) 0.3f else 1f),
                             modifier = Modifier
                                 .size(28.dp)
-                                .pointerInput(song.id) {
+                                .pointerInput(song.id, search.filtering) {
+                                    // While a search narrows the list the visible rows are not the whole playlist: no reordering
+                                    if (search.filtering) return@pointerInput
                                     detectDragGestures(
                                         onDragStart = {
                                             draggingId = song.id
@@ -457,6 +490,32 @@ fun PlaylistDetailScreen(
                 }
             }
 
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                AnimatedContent(
+                    targetState = search.open && !isSelecting,
+                    transitionSpec = {
+                        (fadeIn(tween(220, delayMillis = 60)) +
+                            scaleIn(spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow), initialScale = 0.88f)) togetherWith
+                            fadeOut(tween(110)) using
+                            SizeTransform(clip = false) { _, _ ->
+                                spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)
+                            }
+                    },
+                    label = "topBarCenter"
+                ) { isSearching ->
+                    if (isSearching) {
+                        InlineSearchField(
+                            query = search.query,
+                            onQueryChange = { search.query = it },
+                            placeholder = "Search in playlist",
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
             Surface(
                 shape = shapeOf(32.dp),
                 color = glassFill(),
@@ -542,23 +601,21 @@ fun PlaylistDetailScreen(
                 }
                 }
             }
-
-            Surface(
-                modifier = Modifier
-                    .size(44.dp)
-                    .bounceClickable(shape = CircleShape) { onQueueClick() },
-                shape = CircleShape,
-                color = glassFill(),
-                border = glassStroke(),
-                tonalElevation = 2.dp
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.QueueMusic,
-                        contentDescription = stringResource(R.string.queue),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
+                    }
                 }
+            }
+
+            if (isSelecting) {
+                Spacer(modifier = Modifier.size(44.dp))
+            } else {
+                GlassCircleButton(
+                    icon = if (search.open) Icons.Rounded.Close else Icons.Rounded.Search,
+                    contentDescription = if (search.open) "Close search" else "Search",
+                    onClick = {
+                        keyboard?.hide()
+                        search.toggle()
+                    }
+                )
             }
         }
     }

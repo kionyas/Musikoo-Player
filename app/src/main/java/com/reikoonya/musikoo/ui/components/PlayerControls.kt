@@ -12,6 +12,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -31,9 +33,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.reikoonya.musikoo.ui.theme.LocalFancyStyle
@@ -75,7 +83,7 @@ fun ExpressivePlayButton(
         targetValue = targetCorner,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessMediumLow
+            stiffness = Spring.StiffnessMedium
         ),
         label = "playCorner"
     )
@@ -83,7 +91,7 @@ fun ExpressivePlayButton(
         targetValue = if (pressed) targetWidth * 0.9f else targetWidth,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessMediumLow
+            stiffness = Spring.StiffnessMedium
         ),
         label = "playWidth"
     )
@@ -91,7 +99,7 @@ fun ExpressivePlayButton(
         targetValue = if (pressed) actualHeight * 0.9f else actualHeight,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessMediumLow
+            stiffness = Spring.StiffnessMedium
         ),
         label = "playHeight"
     )
@@ -110,20 +118,74 @@ fun ExpressivePlayButton(
         interactionSource = interaction
     ) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            AnimatedContent(
-                targetState = isPlaying,
-                transitionSpec = {
-                    (fadeIn(animationSpec = tween(220)) + scaleIn(animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium), initialScale = 0.5f)) togetherWith
-                            (fadeOut(animationSpec = tween(180)) + scaleOut(animationSpec = tween(180), targetScale = 0.5f))
-                },
-                label = "playIcon"
-            ) { playing ->
-                Icon(
-                    imageVector = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                    contentDescription = if (playing) "Pause" else "Play",
-                    modifier = Modifier.size(iconSize)
-                )
+            MorphPlayPauseIcon(
+                isPlaying = isPlaying,
+                size = iconSize,
+                contentDescription = if (isPlaying) "Pause" else "Play"
+            )
+        }
+    }
+}
+
+/**
+ * Настоящий морфинг play <-> pause: треугольник «распадается» на две планки (и обратно),
+ * точки полигонов плавно интерполируются пружиной.
+ */
+@Composable
+fun MorphPlayPauseIcon(
+    isPlaying: Boolean,
+    modifier: Modifier = Modifier,
+    size: Dp = 24.dp,
+    tint: Color = LocalContentColor.current,
+    contentDescription: String? = null,
+) {
+    val p by animateFloatAsState(
+        targetValue = if (isPlaying) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "playPauseMorph"
+    )
+    val desc = contentDescription
+    Canvas(
+        modifier = modifier
+            .size(size)
+            .semantics { if (desc != null) this.contentDescription = desc }
+            .graphicsLayer {
+                // лёгкий «поворот» в момент перехода
+                rotationZ = (1f - kotlin.math.abs(2f * p - 1f)) * 8f
             }
+    ) {
+        val s = this.size.minDimension
+        fun mix(a: Float, b: Float) = a + (b - a) * p
+        fun poly(vararg pts: Float): Path {
+            val path = Path()
+            for (i in 0 until 4) {
+                val x = mix(pts[i * 4], pts[i * 4 + 2]) * s
+                val y = mix(pts[i * 4 + 1], pts[i * 4 + 3]) * s
+                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            }
+            path.close()
+            return path
+        }
+        // каждая точка: (xPlay, yPlay, xPause, yPause)
+        val left = poly(
+            0.22f, 0.12f, 0.24f, 0.14f,
+            0.50f, 0.30f, 0.42f, 0.14f,
+            0.50f, 0.70f, 0.42f, 0.86f,
+            0.22f, 0.88f, 0.24f, 0.86f
+        )
+        val right = poly(
+            0.50f, 0.30f, 0.58f, 0.14f,
+            0.82f, 0.50f, 0.76f, 0.14f,
+            0.82f, 0.50f, 0.76f, 0.86f,
+            0.50f, 0.70f, 0.58f, 0.86f
+        )
+        val round = Stroke(width = s * 0.07f, join = StrokeJoin.Round)
+        for (path in listOf(left, right)) {
+            drawPath(path, tint, style = Fill)
+            drawPath(path, tint, style = round)
         }
     }
 }

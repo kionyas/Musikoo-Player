@@ -144,6 +144,11 @@
     <string name="batch_edit_hint">Changes will apply to all selected tracks. Fields with \"Different values\" will remain unchanged unless filled.</string>
 
     <string name="random">Random</string>
+    <string name="nav_albums">Albums</string>
+    <string name="nav_genres">Genres</string>
+    <string name="nav_pins">Pins</string>
+    <string name="nav_playlists">Playlists</string>
+    <string name="genres_count">GENRES (%d)</string>
     <string name="shuffle">Shuffle</string>
     <string name="repeat">Repeat</string>
     <string name="repeat_all">Repeat: All</string>

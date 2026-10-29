@@ -68,6 +68,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.reikoonya.musikoo.model.Song
+import com.reikoonya.musikoo.util.hasGenre
 import com.reikoonya.musikoo.ui.components.cardFill
 import com.reikoonya.musikoo.ui.components.glassStroke
 
@@ -81,10 +82,7 @@ enum class SearchMode(val label: String, val icon: ImageVector, val hint: String
 
 /** Every genre that exists in the library tags, A to Z. */
 fun genresOf(songs: List<Song>): List<String> =
-    songs.map { it.genre.trim() }
-        .filter { it.isNotBlank() && !it.equals("Unknown", ignoreCase = true) }
-        .distinct()
-        .sortedBy { it.lowercase() }
+    com.reikoonya.musikoo.util.groupByGenre(songs).map { it.name }
 
 private fun relevanceOf(title: String, q: String): Int = when {
     title == q -> 100
@@ -164,7 +162,7 @@ private fun buildHits(songs: List<Song>, query: String, mode: SearchMode, genre:
                 .filter { item ->
                     val s = item.value
                     if (genre != null) {
-                        s.genre.equals(genre, ignoreCase = true) &&
+                        s.hasGenre(genre) &&
                                 (q.isEmpty() || s.title.lowercase().contains(q))
                     } else {
                         q.isNotEmpty() && s.genre.lowercase().contains(q)

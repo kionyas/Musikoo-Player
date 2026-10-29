@@ -1,5 +1,20 @@
 package com.reikoonya.musikoo.ui
 
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.itemsIndexed as gridItemsIndexed
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import com.reikoonya.musikoo.ui.components.AnimatedFilterChips
+import com.reikoonya.musikoo.ui.components.ChipOption
+import com.reikoonya.musikoo.ui.components.ScreenTopBar
+import com.reikoonya.musikoo.ui.components.SearchNoResults
+import com.reikoonya.musikoo.ui.components.matchesQuery
+import com.reikoonya.musikoo.ui.components.rememberScreenSearchState
+import com.reikoonya.musikoo.ui.components.staggeredEntrance
+import com.reikoonya.musikoo.ui.components.swipeDownToBack
 import com.reikoonya.musikoo.ui.components.TopPill
 import com.reikoonya.musikoo.ui.components.shapeOf
 import com.reikoonya.musikoo.ui.components.rememberPersistentLazyGridState
@@ -48,19 +63,25 @@ fun ArtistsScreen(
     onArtistClick: (String) -> Unit,
     onBackClick: () -> Unit
 ) {
-    val artists = songs.groupBy { normalizeArtistName(it.artist).lowercase() }
-        .mapKeys { (_, groupSongs) -> normalizeArtistName(groupSongs.first().artist) }
+    val allArtists = remember(songs) {
+        songs.groupBy { normalizeArtistName(it.artist).lowercase() }
+            .mapKeys { (_, groupSongs) -> normalizeArtistName(groupSongs.first().artist) }
+    }
+    var sortName by rememberSaveable { mutableStateOf(ArtistSort.AZ.name) }
+    val sort = ArtistSort.valueOf(sortName)
+    val search = rememberScreenSearchState()
+    val artists = remember(allArtists, sort, search.query) {
+        val filtered = allArtists.entries.filter { matchesQuery(search.query, it.key) }
+        when (sort) {
+            ArtistSort.AZ -> filtered.sortedBy { it.key.lowercase() }
+            ArtistSort.MOST -> filtered.sortedByDescending { it.value.size }
+        }
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .pointerInput(Unit) {
-                detectVerticalDragGestures { _, dragAmount ->
-                    if (dragAmount > 25f) {
-                        onBackClick()
-                    }
-                }
-            }
+            .swipeDownToBack(onBackClick)
     ) {
         ArtBackdrop(art = nowPlayingArt(), topScrim = 0.55f, midScrim = 0.82f)
 
@@ -72,10 +93,26 @@ fun ArtistsScreen(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(artists.entries.toList()) { (artistName, artistSongs) ->
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                AnimatedFilterChips(
+                    options = listOf(
+                        ChipOption(ArtistSort.AZ, "A–Z"),
+                        ChipOption(ArtistSort.MOST, "Most tracks"),
+                    ),
+                    selected = sort,
+                    onSelect = { sortName = it.name }
+                )
+            }
+
+            if (artists.isEmpty() && search.filtering) {
+                item(span = { GridItemSpan(maxLineSpan) }) { SearchNoResults(search.query) }
+            }
+
+            gridItemsIndexed(artists, key = { _, entry -> entry.key }) { index, (artistName, artistSongs) ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .staggeredEntrance(index, once = true)
                         .bounceClickable(shape = shapeOf(32.dp)) { onArtistClick(artistName) },
                     shape = shapeOf(32.dp),
                     colors = CardDefaults.cardColors(
@@ -138,39 +175,14 @@ fun ArtistsScreen(
         // Top gradient scrim
         TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
 
-        // Floating Top Bar Pill
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                modifier = Modifier
-                    .size(44.dp)
-                    .bounceClickable(shape = CircleShape) { onBackClick() },
-                shape = CircleShape,
-                color = glassFill(),
-                border = glassStroke(),
-                tonalElevation = 2.dp
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Rounded.KeyboardArrowDown,
-                        contentDescription = stringResource(R.string.back),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-
-            TopPill(
-                text = stringResource(R.string.artists_count, artists.size)
-            )
-
-            Spacer(modifier = Modifier.size(44.dp))
-        }
+        ScreenTopBar(
+            title = stringResource(R.string.artists_count, allArtists.size),
+            onBack = onBackClick,
+            search = search,
+            searchHint = "Search artists",
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
     }
 }
+
+private enum class ArtistSort { AZ, MOST }

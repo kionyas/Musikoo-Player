@@ -1,5 +1,6 @@
 package com.reikoonya.musikoo.ui
 
+import com.reikoonya.musikoo.ui.components.CascadeText
 import com.reikoonya.musikoo.ui.components.coverShapeOf
 import com.reikoonya.musikoo.ui.components.TopPill
 import com.reikoonya.musikoo.ui.components.shapeOf
@@ -109,7 +110,7 @@ fun QueueScreen(
                             }
                         }
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
+                            CascadeText(
                                 text = stringResource(R.string.up_next),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,

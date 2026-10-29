@@ -109,6 +109,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Scrobbler.init(this)
+        // Настройки анимаций читаются до первого кадра, чтобы экраны не мигали значением по умолчанию
+        UiStylePrefs.ensureLoaded(applicationContext)
+        com.reikoonya.musikoo.util.BottomBarPrefs.ensureLoaded(applicationContext)
         MusicPlayerManager.pendingOpenPlayer = intent?.getBooleanExtra(MusicPlayerManager.EXTRA_OPEN_PLAYER, false) == true
         checkAndRequestAudioPermission()
         audioGranted = hasAudioPermission()
@@ -301,6 +304,8 @@ class MainActivity : ComponentActivity() {
                     val isSheetScreen = { sc: Screen ->
                         sc is Screen.Songs || sc is Screen.Albums || sc is Screen.AlbumDetail ||
                                 sc is Screen.Artists || sc is Screen.ArtistDetail ||
+                                sc is Screen.Genres || sc is Screen.GenreDetail ||
+                                sc is Screen.Pins || sc is Screen.Playlists || sc is Screen.PickSongs || sc is Screen.CreatePlaylist ||
                                 sc is Screen.PlaylistDetail || sc is Screen.ComposerDetail
                     }
 
@@ -330,6 +335,12 @@ class MainActivity : ComponentActivity() {
                                     onAboutClick = { navigateTo(Screen.About) },
                                     onSongsClick = { navigateTo(Screen.Songs) },
                                     onArtistsClick = { navigateTo(Screen.Artists) },
+                                    onAlbumsClick = { navigateTo(Screen.Albums) },
+                                    onGenresClick = { navigateTo(Screen.Genres) },
+                                    onGenreClick = { genreName -> navigateTo(Screen.GenreDetail(genreName)) },
+                                    onPinsClick = { navigateTo(Screen.Pins) },
+                                    onPlaylistsClick = { navigateTo(Screen.Playlists) },
+                                    onCreatePlaylist = { navigateTo(Screen.CreatePlaylist) },
                                     onRandomizeClick = {
                                         if (songs.isNotEmpty()) {
                                             val randomIndex = Random.nextInt(songs.size)
@@ -376,6 +387,56 @@ class MainActivity : ComponentActivity() {
                                     onArtistClick = { artistName -> navigateTo(Screen.ArtistDetail(artistName)) },
                                 ) { navigator.popToMainMenu() }
                             }
+                            is Screen.Pins -> {
+                                PinsScreen(
+                                    songs = songs,
+                                    onAlbumClick = { albumName -> navigateTo(Screen.AlbumDetail(albumName)) },
+                                    onPlaylistClick = { id -> navigateTo(Screen.PlaylistDetail(id)) },
+                                ) { navigator.popToMainMenu() }
+                            }
+                            is Screen.Playlists -> {
+                                PlaylistsScreen(
+                                    songs = songs,
+                                    onPlaylistClick = { id -> navigateTo(Screen.PlaylistDetail(id)) },
+                                    onCreatePlaylistClick = { navigateTo(Screen.CreatePlaylist) },
+                                ) { navigator.popToMainMenu() }
+                            }
+                            is Screen.CreatePlaylist -> {
+                                CreatePlaylistScreen(
+                                    onCreated = { id ->
+                                        // Шторка создания заменяется шторкой выбора песен
+                                        popBackStack()
+                                        navigateTo(Screen.PickSongs(id))
+                                    },
+                                    onBackClick = { popBackStack() },
+                                )
+                            }
+                            is Screen.PickSongs -> {
+                                SongPickerScreen(
+                                    playlistId = screen.playlistId,
+                                    allSongs = songs,
+                                ) { popBackStack() }
+                            }
+                            is Screen.Genres -> {
+                                GenresScreen(
+                                    songs = songs,
+                                    onGenreClick = { genreName -> navigateTo(Screen.GenreDetail(genreName)) },
+                                ) { navigator.popToMainMenu() }
+                            }
+                            is Screen.GenreDetail -> {
+                                GenreDetailScreen(
+                                    genreName = screen.genreName,
+                                    songs = songs,
+                                    onSongClick = { genreSongs, localIndex ->
+                                        MusicPlayerManager.playSong(genreSongs, localIndex)
+                                        navigateTo(Screen.Player(localIndex))
+                                    },
+                                    onQueueClick = { navigateTo(Screen.Queue) },
+                                    onSongsEdited = { edited ->
+                                        libraryVm.setSongs(songs.map { song -> edited.firstOrNull { it.id == song.id } ?: song })
+                                    },
+                                ) { popBackStack() }
+                            }
                             is Screen.ArtistDetail -> {
                                 ArtistDetailScreen(
                                     artistName = screen.artistName,
@@ -397,6 +458,7 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onQueueClick = { navigateTo(Screen.Queue) },
                                     onBackClick = { popBackStack() },
+                                    onAddSongs = { navigateTo(Screen.PickSongs(screen.playlistId)) },
                                     onPlaylistDeleted = { popBackStack() }
                                 )
                             }
@@ -458,6 +520,7 @@ class MainActivity : ComponentActivity() {
                                             }
                                         }
                                     },
+                                    songs = songs,
                                     onLastFmDisconnect = {
                                         lastFm.disconnect()
                                         Toast.makeText(context, "Last.fm disconnected", Toast.LENGTH_SHORT).show()
@@ -521,7 +584,7 @@ class MainActivity : ComponentActivity() {
 
                     // Everything under a sheet gets blurred smoothly
                     val sheetBlur by animateDpAsState(
-                        targetValue = if (sheetScreen != null) 14.dp else 0.dp,
+                        targetValue = if (sheetScreen != null && UiStylePrefs.blurEnabled) 14.dp else 0.dp,
                         animationSpec = if (sheetScreen != null) {
                             tween(320, easing = FastOutSlowInEasing)
                         } else {
@@ -579,8 +642,8 @@ class MainActivity : ComponentActivity() {
                                 ) { state ->
                                     when (state) {
                                         EnterExitState.Visible -> 0.dp
-                                        EnterExitState.PostExit -> 18.dp
-                                        EnterExitState.PreEnter -> if (screen is Screen.MainMenu) 18.dp else 0.dp
+                                        EnterExitState.PostExit -> if (UiStylePrefs.blurEnabled) 18.dp else 0.dp
+                                        EnterExitState.PreEnter -> if (screen is Screen.MainMenu && UiStylePrefs.blurEnabled) 18.dp else 0.dp
                                     }
                                 }
                                 Box(

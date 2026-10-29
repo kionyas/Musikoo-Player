@@ -9,6 +9,7 @@ import com.reikoonya.musikoo.ui.components.staggeredEntrance
 import com.reikoonya.musikoo.ui.components.TrackTextSwap
 import com.reikoonya.musikoo.ui.components.TrackLabel
 import com.reikoonya.musikoo.ui.components.MagicArt
+import com.reikoonya.musikoo.ui.components.CascadeText
 import com.reikoonya.musikoo.ui.components.marqueeEdgeFade
 import com.reikoonya.musikoo.ui.components.shapeOf
 import com.reikoonya.musikoo.ui.components.expressiveBadgeShape
@@ -125,6 +126,8 @@ import com.reikoonya.musikoo.util.ShareUtils
 import com.reikoonya.musikoo.util.SongDeleter
 import com.reikoonya.musikoo.util.formatTime
 import com.reikoonya.musikoo.ui.components.PlayerProgress
+import com.reikoonya.musikoo.ui.components.ScrubState
+import com.reikoonya.musikoo.ui.components.scrubReact
 import com.reikoonya.musikoo.ui.components.rememberSongArt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -168,6 +171,7 @@ fun PlayerScreen(
         mutableStateOf(prefs.getBoolean("show_lyrics_player", false))
     }
     var isScrubbing by remember { mutableStateOf(false) }
+    val scrub = remember { ScrubState() }
 
     val scrubbingScale by animateFloatAsState(
         targetValue = if (isScrubbing) 0.88f else 1f,
@@ -396,12 +400,12 @@ fun PlayerScreen(
                                 targetState = currentSong?.album?.takeIf { it.isNotBlank() } ?: "",
                                 transitionSpec = {
                                     (slideInVertically(tween(380, easing = FastOutSlowInEasing)) { it } +
-                                        fadeIn(tween(280, delayMillis = 70))) togetherWith
-                                        (slideOutVertically(tween(260, easing = FastOutSlowInEasing)) { -it } +
-                                            fadeOut(tween(140))) using
-                                        SizeTransform(clip = true) { _, _ ->
-                                            spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)
-                                        }
+                                            fadeIn(tween(280, delayMillis = 70))) togetherWith
+                                            (slideOutVertically(tween(260, easing = FastOutSlowInEasing)) { -it } +
+                                                    fadeOut(tween(140))) using
+                                            SizeTransform(clip = true) { _, _ ->
+                                                spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)
+                                            }
                                 },
                                 label = "playerPillAlbum"
                             ) { album ->
@@ -485,18 +489,18 @@ fun PlayerScreen(
                     if (targetState) {
                         // Lyrics take over: they rise gently and appear just after the cover starts leaving
                         (fadeIn(animationSpec = tween(420, delayMillis = 120, easing = easing)) +
-                            slideInVertically(animationSpec = tween(480, easing = easing)) { it / 10 })
+                                slideInVertically(animationSpec = tween(480, easing = easing)) { it / 10 })
                             .togetherWith(
                                 fadeOut(animationSpec = tween(220, easing = easing)) +
-                                    scaleOut(targetScale = 0.92f, animationSpec = tween(320, easing = easing))
+                                        scaleOut(targetScale = 0.92f, animationSpec = tween(320, easing = easing))
                             )
                     } else {
                         // Back to the cover: the cover grows back in while the lyrics sink and fade
                         (fadeIn(animationSpec = tween(420, delayMillis = 120, easing = easing)) +
-                            scaleIn(initialScale = 0.92f, animationSpec = tween(480, easing = easing)))
+                                scaleIn(initialScale = 0.92f, animationSpec = tween(480, easing = easing)))
                             .togetherWith(
                                 fadeOut(animationSpec = tween(200, easing = easing)) +
-                                    slideOutVertically(animationSpec = tween(360, easing = easing)) { it / 10 }
+                                        slideOutVertically(animationSpec = tween(360, easing = easing)) { it / 10 }
                             )
                     }.using(SizeTransform(clip = false) { _, _ -> sizeSpec })
                 },
@@ -515,6 +519,7 @@ fun PlayerScreen(
                                         scaleX = scrubbingScale
                                         scaleY = scrubbingScale
                                     }
+                                    .scrubReact(scrub, shift = 6.dp, tiltDegrees = 8f)
                                     .clip(RoundedCornerShape(scrubbingCorner)),
                                 color = MaterialTheme.colorScheme.surfaceContainerHigh
                             ) {
@@ -574,6 +579,7 @@ fun PlayerScreen(
                                         scaleY = coverSqueeze.value * scrubbingScale * pulse
                                         translationX = coverDrag * 0.35f + coverKick.value
                                     }
+                                    .scrubReact(scrub, shift = 10.dp, tiltDegrees = 5f)
                                     .onSizeChanged { coverWidthPx = it.width.toFloat().coerceAtLeast(1f) }
                                     .pointerInput(Unit) {
                                         detectTapGestures(
@@ -653,14 +659,18 @@ fun PlayerScreen(
                                     title = currentSong?.title ?: strSelectTrack,
                                     artist = currentSong?.artist ?: strUnknownArtist
                                 ),
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .scrubReact(scrub, shift = 16.dp, fade = 0.35f)
                             ) { l ->
                                 Column(Modifier.fillMaxWidth()) {
-                                    Text(l.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.marqueeEdgeFade())
-                                    Text(
+                                    CascadeText(l.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.marqueeEdgeFade(), playOnce = false)
+                                    CascadeText(
                                         text = l.artist,
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        delayMillis = 120,
+                                        playOnce = false,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier
@@ -679,6 +689,7 @@ fun PlayerScreen(
                                 }
                                 Surface(
                                     modifier = Modifier
+                                        .scrubReact(scrub, shift = 8.dp, shrink = 0.12f, fade = 0.4f)
                                         .size(52.dp)
                                         .bounceClickable(shape = favShape) { PlaylistManager.toggleFavorite(context, currentSong.id) },
                                     shape = favShape,
@@ -702,45 +713,46 @@ fun PlayerScreen(
 
             // 3. Слайдер
             Column(Modifier.staggeredEntrance(1)) {
-            Spacer(Modifier.height(4.dp))
-            PlayerProgress(
-                isPlaying = isPlaying,
-                accent = accent,
-                onScrubbingChanged = { isScrubbing = it }
-            )
+                Spacer(Modifier.height(4.dp))
+                PlayerProgress(
+                    isPlaying = isPlaying,
+                    accent = accent,
+                    onScrubbingChanged = { isScrubbing = it },
+                    scrubState = scrub
+                )
             }
 
             // 4. Транспортный ряд
             Spacer(Modifier.height(8.dp))
-            Box(Modifier.staggeredEntrance(2)) {
-            PlayerTransportRow(
-                isPlaying = isPlaying,
-                accent = accent,
-                onAccent = onAccent,
-                onPlayPause = {
-                    if (MusicPlayerManager.controller == null && songs.isNotEmpty()) {
-                        MusicPlayerManager.playSong(songs, initialSongIndex.coerceIn(songs.indices))
-                    } else {
-                        MusicPlayerManager.togglePlayPause()
+            Box(Modifier.staggeredEntrance(2).scrubReact(scrub, shift = 6.dp, shrink = 0.05f, fade = 0.35f)) {
+                PlayerTransportRow(
+                    isPlaying = isPlaying,
+                    accent = accent,
+                    onAccent = onAccent,
+                    onPlayPause = {
+                        if (MusicPlayerManager.controller == null && songs.isNotEmpty()) {
+                            MusicPlayerManager.playSong(songs, initialSongIndex.coerceIn(songs.indices))
+                        } else {
+                            MusicPlayerManager.togglePlayPause()
+                        }
                     }
-                }
-            )
+                )
             }
 
             // 5. Нижние капсулы
             Spacer(Modifier.height(10.dp))
-            Box(Modifier.staggeredEntrance(3)) {
-            PlayerPills(
-                accent = accent,
-                onAccent = onAccent,
-                lyricsOn = showLyrics,
-                onToggleLyrics = {
-                    val next = !showLyrics
-                    showLyrics = next
-                    prefs.edit().putBoolean("show_lyrics_player", next).apply()
-                },
-                onQueueClick = onQueueClick
-            )
+            Box(Modifier.staggeredEntrance(3).scrubReact(scrub, shift = 4.dp, fade = 0.25f)) {
+                PlayerPills(
+                    accent = accent,
+                    onAccent = onAccent,
+                    lyricsOn = showLyrics,
+                    onToggleLyrics = {
+                        val next = !showLyrics
+                        showLyrics = next
+                        prefs.edit().putBoolean("show_lyrics_player", next).apply()
+                    },
+                    onQueueClick = onQueueClick
+                )
             }
         }
     }

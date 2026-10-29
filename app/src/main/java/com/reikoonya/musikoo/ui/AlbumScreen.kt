@@ -1,5 +1,16 @@
 package com.reikoonya.musikoo.ui
 
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.itemsIndexed as gridItemsIndexed
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.reikoonya.musikoo.ui.components.AnimatedFilterChips
+import com.reikoonya.musikoo.ui.components.ChipOption
+import com.reikoonya.musikoo.ui.components.ScreenTopBar
+import com.reikoonya.musikoo.ui.components.SearchNoResults
+import com.reikoonya.musikoo.ui.components.matchesQuery
+import com.reikoonya.musikoo.ui.components.rememberScreenSearchState
+import com.reikoonya.musikoo.ui.components.staggeredEntrance
+import com.reikoonya.musikoo.ui.components.swipeDownToBack
 import com.reikoonya.musikoo.ui.components.TopPill
 import com.reikoonya.musikoo.ui.components.expressiveBadgeShape
 import com.reikoonya.musikoo.ui.components.shapeOf
@@ -52,7 +63,23 @@ fun AlbumsScreen(
     onSongsEdited: (List<Song>) -> Unit = {},
     onBackClick: () -> Unit
 ) {
-    val albums = songs.groupBy { it.album }
+    val albums = remember(songs) { songs.groupBy { it.album } }
+    var sortName by rememberSaveable { mutableStateOf(AlbumSort.AZ.name) }
+    val sort = AlbumSort.valueOf(sortName)
+    val search = rememberScreenSearchState()
+    val shownAlbums = remember(albums, sort, search.query) {
+        val filtered = albums.entries.filter { (name, list) ->
+            matchesQuery(search.query, name, list.firstOrNull()?.artist, list.firstOrNull()?.albumArtist)
+        }
+        when (sort) {
+            AlbumSort.AZ -> filtered.sortedBy { it.key.lowercase() }
+            AlbumSort.MOST -> filtered.sortedByDescending { it.value.size }
+            AlbumSort.ARTIST -> filtered.sortedWith(
+                compareBy<Map.Entry<String, List<Song>>> { it.value.firstOrNull()?.artist.orEmpty().lowercase() }
+                    .thenBy { it.key.lowercase() }
+            )
+        }
+    }
 
     var actionsAlbum by remember { mutableStateOf<String?>(null) }
     var editSongs by remember { mutableStateOf<List<Song>?>(null) }
@@ -80,13 +107,7 @@ fun AlbumsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .pointerInput(Unit) {
-                detectVerticalDragGestures { _, dragAmount ->
-                    if (dragAmount > 25f) {
-                        onBackClick()
-                    }
-                }
-            }
+            .swipeDownToBack(onBackClick)
     ) {
         ArtBackdrop(art = nowPlayingArt(), topScrim = 0.55f, midScrim = 0.82f)
 
@@ -98,10 +119,28 @@ fun AlbumsScreen(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(albums.entries.toList()) { (albumName, albumSongs) ->
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                AnimatedFilterChips(
+                    options = listOf(
+                        ChipOption(AlbumSort.AZ, "A–Z"),
+                        ChipOption(AlbumSort.MOST, "Most tracks"),
+                        ChipOption(AlbumSort.ARTIST, "Artist"),
+                    ),
+                    selected = sort,
+                    onSelect = { sortName = it.name }
+                )
+            }
+
+            if (shownAlbums.isEmpty() && search.filtering) {
+                item(span = { GridItemSpan(maxLineSpan) }) { SearchNoResults(search.query) }
+            }
+
+            gridItemsIndexed(shownAlbums, key = { _, entry -> entry.key }) { index, (albumName, albumSongs) ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .animateItem()
+                        .staggeredEntrance(index, once = true)
                         .bounceCombinedClickable(shape = shapeOf(32.dp), onLongClick = { actionsAlbum = albumName }) { onAlbumClick(albumName) },
                     shape = shapeOf(32.dp),
                     colors = CardDefaults.cardColors(
@@ -154,39 +193,14 @@ fun AlbumsScreen(
         // Top gradient scrim
         TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
 
-        // Floating Top Bar Pill
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                modifier = Modifier
-                    .size(44.dp)
-                    .bounceClickable(shape = CircleShape) { onBackClick() },
-                shape = CircleShape,
-                color = glassFill(),
-                border = glassStroke(),
-                tonalElevation = 2.dp
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Rounded.KeyboardArrowDown,
-                        contentDescription = stringResource(R.string.back),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-
-            TopPill(
-                text = stringResource(R.string.albums_count, albums.size)
-            )
-
-            Spacer(modifier = Modifier.size(44.dp))
-        }
+        ScreenTopBar(
+            title = stringResource(R.string.albums_count, albums.size),
+            onBack = onBackClick,
+            search = search,
+            searchHint = "Search albums",
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
     }
 }
+
+private enum class AlbumSort { AZ, MOST, ARTIST }

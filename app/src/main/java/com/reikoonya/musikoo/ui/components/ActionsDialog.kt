@@ -54,8 +54,7 @@ fun ActionsDialog(
                         headlineContent = { Text(action.label) },
                         leadingContent = { Icon(action.icon, contentDescription = null) },
                         modifier = Modifier
-                            .clip(shapeOf(20.dp))
-                            .clickable(onClick = action.onClick)
+                            .bounceClickable(shape = shapeOf(20.dp), onClick = action.onClick)
                     )
                 }
             }

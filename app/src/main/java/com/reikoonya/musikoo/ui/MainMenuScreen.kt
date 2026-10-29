@@ -119,6 +119,12 @@ fun MainMenuScreen(
     onAboutClick: () -> Unit,
     onSongsClick: () -> Unit,
     onArtistsClick: () -> Unit,
+    onAlbumsClick: () -> Unit = {},
+    onGenresClick: () -> Unit = {},
+    onGenreClick: (String) -> Unit = {},
+    onPinsClick: () -> Unit = {},
+    onPlaylistsClick: () -> Unit = {},
+    onCreatePlaylist: () -> Unit = {},
     onRandomizeClick: () -> Unit,
     onSongsEdited: (List<Song>) -> Unit = {}
 ) {
@@ -136,7 +142,10 @@ fun MainMenuScreen(
     fun reloadPinnedAlbums() {
         loadScope.launch { pinnedAlbumNames = PlaylistManager.loadPinnedAlbums(context) }
     }
-    LaunchedEffect(Unit) {
+    // Главный экран остаётся под «шторками» (альбом, плейлист, выбор песен), поэтому одного чтения при входе мало:
+    // перечитываем плейлисты и пины при каждом изменении в PlaylistManager
+    val dataVersion by PlaylistManager.changes.collectAsState()
+    LaunchedEffect(dataVersion) {
         reloadPlaylists()
         reloadPinnedAlbums()
     }
@@ -172,8 +181,8 @@ fun MainMenuScreen(
         albums.filterKeys { pinnedAlbumNames.contains(it) }
     }
 
-    val showSections =
-        playlists.isNotEmpty() || pinnedPlaylists.isNotEmpty() || pinnedAlbumsList.isNotEmpty()
+    // Секция плейлистов есть всегда (в ней кнопка «+»), поэтому и заголовок альбомов показываем всегда
+    val showSections = true
     val hasPinnedSection = pinnedPlaylists.isNotEmpty() || pinnedAlbumsList.isNotEmpty()
 
     MainMenuDialogs(
@@ -194,10 +203,9 @@ fun MainMenuScreen(
         } else null
 
 
-    var libraryTabsMode by remember { mutableStateOf(com.reikoonya.musikoo.util.UiStylePrefs.loadLibraryTabsMode(context)) }
-    LaunchedEffect(Unit) {
-        libraryTabsMode = com.reikoonya.musikoo.util.UiStylePrefs.loadLibraryTabsMode(context)
-    }
+    // Вид библиотеки наблюдаемый: правки в Settings → Interface → Library Layout применяются сразу
+    remember(context) { com.reikoonya.musikoo.util.UiStylePrefs.ensureLibraryLoaded(context) }
+    val libraryTabsMode = com.reikoonya.musikoo.util.UiStylePrefs.libraryTabsEnabled
     var mainMode by rememberSaveable { mutableStateOf(MainMode.Library) }
 
     Box(
@@ -220,6 +228,7 @@ fun MainMenuScreen(
             libraryTabsMode = libraryTabsMode,
             onAlbumClick = onAlbumClick,
             onPlaylistClick = onPlaylistClick,
+            onCreatePlaylist = onCreatePlaylist,
         )
 
         BottomFadeScrim(modifier = Modifier.align(Alignment.BottomCenter))
@@ -246,6 +255,11 @@ fun MainMenuScreen(
             onOpenPlayer = onOpenPlayer,
             onSongsClick = onSongsClick,
             onArtistsClick = onArtistsClick,
+            onAlbumsClick = onAlbumsClick,
+            onGenresClick = onGenresClick,
+            onGenreClick = onGenreClick,
+            onPinsClick = onPinsClick,
+            onPlaylistsClick = onPlaylistsClick,
             onRandomizeClick = onRandomizeClick,
         )
 

@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
@@ -34,6 +35,21 @@ object PlaylistManager {
 
     private fun writeDb(context: Context): SQLiteDatabase = MusikooDatabase.get(context).writableDatabase
     private fun readDb(context: Context): SQLiteDatabase = MusikooDatabase.get(context).readableDatabase
+
+    // ---------- CHANGE NOTIFICATIONS ----------
+
+    private val changeCounter = MutableStateFlow(0)
+
+    /**
+     * Растёт при любом изменении плейлистов, избранного и закреплённых альбомов.
+     * Экраны, которые держат копию этих данных (главный экран остаётся под «шторками»),
+     * перечитывают её по этому счётчику, поэтому новые плейлисты и пины появляются сразу.
+     */
+    val changes: StateFlow<Int> = changeCounter.asStateFlow()
+
+    private fun notifyChanged() {
+        changeCounter.update { it + 1 }
+    }
 
     // ---------- FAVORITES ----------
 
@@ -85,6 +101,7 @@ object PlaylistManager {
             }
             db.setTransactionSuccessful()
             favoriteSet.value = if (nowFav) favoriteSet.value + songId else favoriteSet.value - songId
+            notifyChanged()
         } catch (e: Exception) {
             Log.e(TAG, "toggleFavorite failed", e)
         } finally {
@@ -106,6 +123,7 @@ object PlaylistManager {
             }
             db.setTransactionSuccessful()
             favoriteSet.value = songIds.toSet()
+            notifyChanged()
         } catch (e: Exception) {
             Log.e(TAG, "replaceFavorites failed", e)
         } finally {
@@ -218,6 +236,7 @@ object PlaylistManager {
         playlists.firstOrNull { it.id == FAVORITES_PLAYLIST_ID }?.let { fav ->
             prefs(context).edit().putBoolean(KEY_FAVORITES_PINNED, fav.isPinned).apply()
         }
+        notifyChanged()
     }
 
     fun createPlaylist(context: Context, name: String, songIds: List<Long> = emptyList()): Playlist {
@@ -276,6 +295,7 @@ object PlaylistManager {
         if (playlistId == FAVORITES_PLAYLIST_ID) {
             val curPinned = prefs(context).getBoolean(KEY_FAVORITES_PINNED, false)
             prefs(context).edit().putBoolean(KEY_FAVORITES_PINNED, !curPinned).apply()
+            notifyChanged()
             return
         }
         val playlists = getPlaylists(context).map { playlist ->
@@ -310,6 +330,7 @@ object PlaylistManager {
             if (playlistId == FAVORITES_PLAYLIST_ID) {
                 writeDb(context).delete("favorites", null, null)
                 favoriteSet.value = emptySet()
+                notifyChanged()
                 return
             }
             val playlists = getPlaylists(context).filter { it.id != playlistId }
@@ -326,6 +347,7 @@ object PlaylistManager {
                 db.delete("playlist_songs", "song_id = ?", arrayOf(songId.toString()))
                 db.setTransactionSuccessful()
                 favoriteSet.value = favoriteSet.value - songId
+                notifyChanged()
             } catch (e: Exception) {
                 Log.e(TAG, "onSongDeleted failed", e)
             } finally {
@@ -352,6 +374,7 @@ object PlaylistManager {
         } else {
             db.insertOrThrow("pinned_albums", null, ContentValues().apply { put("name", albumName) })
         }
+        notifyChanged()
     }
 
     // ---------- SECTION COLLAPSE ----------

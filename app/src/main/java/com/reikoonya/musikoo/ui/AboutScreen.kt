@@ -1,5 +1,6 @@
 package com.reikoonya.musikoo.ui
 
+import com.reikoonya.musikoo.ui.components.CascadeText
 import com.reikoonya.musikoo.ui.components.TopPill
 import com.reikoonya.musikoo.ui.components.shapeOf
 import androidx.compose.material.icons.rounded.*
@@ -234,7 +235,7 @@ fun AboutScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(
+                    CascadeText(
                         text = stringResource(R.string.app_name),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,

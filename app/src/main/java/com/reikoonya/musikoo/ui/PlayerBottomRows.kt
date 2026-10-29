@@ -2,6 +2,7 @@ package com.reikoonya.musikoo.ui
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -15,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -25,6 +27,7 @@ import com.reikoonya.musikoo.ui.components.BounceIconButton
 import com.reikoonya.musikoo.ui.components.BounceSurface
 import com.reikoonya.musikoo.ui.components.ExpressivePlayButton
 import com.reikoonya.musikoo.ui.components.GlassIconButton
+import com.reikoonya.musikoo.ui.components.bounceClickable
 import com.reikoonya.musikoo.ui.components.glassStroke
 import com.reikoonya.musikoo.util.MusicPlayerManager
 
@@ -34,19 +37,38 @@ fun PlayerTransportRow(isPlaying: Boolean, accent: Color, onAccent: Color, onPla
     val repeat = MusicPlayerManager.repeatState
     val circleContainer = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
     val circleContent = MaterialTheme.colorScheme.onSecondaryContainer
+    // The slot follows the play/pause morph (76 dp circle <-> 88 dp pill) with the same spring, so the gap
+    // to the neighbours is always exactly the row spacing; the press shrink stays inside the slot
+    val playSlotWidth by animateDpAsState(
+        targetValue = if (isPlaying) 88.dp else 76.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium),
+        label = "playSlotWidth"
+    )
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier.weight(1f),
-            contentAlignment = Alignment.Center
+    // The group is 292 dp wide with a circle and 304 dp with a pill. On narrow screens it used to run past the
+    // edge and the play button slid off-centre, so the whole row is scaled down uniformly when it does not fit
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        val needed = 304.dp
+        val fit = (maxWidth / needed).coerceAtMost(1f)
+        Row(
+            modifier = Modifier
+                .requiredWidth(needed)
+                .graphicsLayer {
+                    scaleX = fit
+                    scaleY = fit
+                }
+                .padding(horizontal = 4.dp),
+            // The group stays centred: when play morphs into the pill, both sides slide apart equally
+            // Same idea as in the mini player: buttons sit close together as one group
+            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            BounceIconButton(onClick = { MusicPlayerManager.toggleShuffle() }) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .bounceClickable(shape = CircleShape) { MusicPlayerManager.toggleShuffle() },
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(
                     imageVector = Icons.Rounded.Shuffle,
                     contentDescription = "Shuffle",
@@ -54,61 +76,51 @@ fun PlayerTransportRow(isPlaying: Boolean, accent: Color, onAccent: Color, onPla
                     tint = if (shuffleOn) accent else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        }
 
-        Box(
-            modifier = Modifier.weight(1.1f),
-            contentAlignment = Alignment.Center
-        ) {
             GlassIconButton(
                 icon = Icons.Rounded.SkipPrevious,
                 contentDescription = "Previous",
                 onClick = { MusicPlayerManager.skipPrevious() },
-                modifier = Modifier.size(58.dp),
+                modifier = Modifier.size(56.dp),
                 shape = CircleShape,
                 containerColor = circleContainer,
                 contentColor = circleContent,
                 iconSize = 28.dp
             )
-        }
 
-        Box(
-            modifier = Modifier.weight(1.4f),
-            contentAlignment = Alignment.Center
-        ) {
-            ExpressivePlayButton(
-                isPlaying = isPlaying,
-                onClick = onPlayPause,
-                containerColor = accent,
-                contentColor = onAccent,
-                width = 88.dp,
-                height = 76.dp,
-                iconSize = 36.dp,
-                playingCorner = 28.dp
-            )
-        }
+            Box(
+                modifier = Modifier.size(width = playSlotWidth, height = 76.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                ExpressivePlayButton(
+                    isPlaying = isPlaying,
+                    onClick = onPlayPause,
+                    containerColor = accent,
+                    contentColor = onAccent,
+                    width = 88.dp,
+                    height = 76.dp,
+                    iconSize = 36.dp,
+                    playingCorner = 28.dp
+                )
+            }
 
-        Box(
-            modifier = Modifier.weight(1.1f),
-            contentAlignment = Alignment.Center
-        ) {
             GlassIconButton(
                 icon = Icons.Rounded.SkipNext,
                 contentDescription = "Next",
                 onClick = { MusicPlayerManager.skipNext() },
-                modifier = Modifier.size(58.dp),
+                modifier = Modifier.size(56.dp),
                 shape = CircleShape,
                 containerColor = circleContainer,
                 contentColor = circleContent,
                 iconSize = 28.dp
             )
-        }
 
-        Box(
-            modifier = Modifier.weight(1f),
-            contentAlignment = Alignment.Center
-        ) {
-            BounceIconButton(onClick = { MusicPlayerManager.cycleRepeat() }) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .bounceClickable(shape = CircleShape) { MusicPlayerManager.cycleRepeat() },
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(
                     imageVector = if (repeat == Player.REPEAT_MODE_ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
                     contentDescription = "Repeat",

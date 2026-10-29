@@ -1,5 +1,6 @@
 package com.reikoonya.musikoo.ui
 
+import com.reikoonya.musikoo.util.UiStylePrefs
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.SizeTransform
@@ -70,7 +71,7 @@ fun LyricsPanel(lyrics: LyricsResult?, loaded: Boolean, visible: Boolean, accent
                     val blur by transition.animateDp(
                         transitionSpec = { tween(duration, easing = FastOutSlowInEasing) },
                         label = "lyricsBlur"
-                    ) { s -> if (s == EnterExitState.Visible) 0.dp else 18.dp }
+                    ) { s -> if (!UiStylePrefs.blurEnabled || s == EnterExitState.Visible) 0.dp else 18.dp }
 
                     Box(
                         modifier = Modifier
@@ -192,7 +193,7 @@ private fun LyricRow(line: LyricLine, index: Int, active: Int, positionMs: Long,
 
     // Blur grows with distance from the active line (capped). Only rows currently composed by the
     // LazyColumn get a layer, so the cost stays bounded by the number of visible rows.
-    val targetBlur = if (isSynced && !isActive) (distance * 1.5f).coerceAtMost(6f).dp else 0.dp
+    val targetBlur = if (UiStylePrefs.blurEnabled && isSynced && !isActive) (distance * 1.5f).coerceAtMost(6f).dp else 0.dp
     val animatedBlur by animateDpAsState(targetBlur, tween(200, easing = FastOutSlowInEasing), label = "lyricBlur")
 
     val targetAlpha = when { !isSynced -> 0.90f; isActive -> 1f; distance == 1 -> 0.52f; distance == 2 -> 0.32f; else -> 0.16f }

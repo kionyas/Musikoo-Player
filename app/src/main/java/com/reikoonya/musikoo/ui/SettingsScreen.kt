@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import kotlin.math.PI
 import kotlin.math.sin
 import com.reikoonya.musikoo.ui.components.TopPill
+import com.reikoonya.musikoo.ui.components.MusikooSwitch
 import com.reikoonya.musikoo.ui.theme.FontChoice
 import com.reikoonya.musikoo.ui.components.expressiveBadgeShape
 import androidx.compose.foundation.layout.Row
@@ -57,6 +58,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import com.reikoonya.musikoo.ui.components.CascadeText
 import com.reikoonya.musikoo.ui.components.WavyProgress
 import com.reikoonya.musikoo.ui.components.plainNotes
 import com.reikoonya.musikoo.util.UpdateConfig
@@ -89,6 +91,7 @@ import com.reikoonya.musikoo.ui.components.glassStroke
 import com.reikoonya.musikoo.ui.components.listItemColors
 import com.reikoonya.musikoo.ui.components.nowPlayingArt
 import com.reikoonya.musikoo.ui.theme.ColorThemeMode
+import com.reikoonya.musikoo.ui.theme.MiniSwipeAction
 import com.reikoonya.musikoo.ui.theme.ThemeBrightness
 import com.reikoonya.musikoo.ui.theme.UiStyle
 import com.reikoonya.musikoo.util.AppIconMode
@@ -97,12 +100,14 @@ private enum class SettingsPage(val parent: SettingsPage?) {
     ROOT(null),
     DEVICE(ROOT),
     INTERFACE(ROOT),
-    APPEARANCE(ROOT)
+    APPEARANCE(ROOT),
+    BOTTOM_BAR(INTERFACE),
+    ENERGY(DEVICE)
 }
 
 private fun SettingsPage.depth(): Int = generateSequence(this) { it.parent }.count() - 1
 
-private enum class SettingsSheet { THEME_FONT, BACKGROUND, SHAPES, APP_ICON, LASTFM, DOWNLOADS }
+private enum class SettingsSheet { THEME_FONT, BACKGROUND, SHAPES, APP_ICON, LASTFM, DOWNLOADS, MINI_GESTURES, BAR_ADD, LIBRARY_LAYOUT }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -125,7 +130,8 @@ fun SettingsScreen(
     lastFmUser: String? = null,
     lastFmAvatarUrl: String? = null,
     onLastFmConnect: () -> Unit = {},
-    onLastFmDisconnect: () -> Unit = {}
+    onLastFmDisconnect: () -> Unit = {},
+    songs: List<com.reikoonya.musikoo.model.Song> = emptyList()
 ) {
     var pageName by rememberSaveable { mutableStateOf(SettingsPage.ROOT.name) }
     val page = SettingsPage.valueOf(pageName)
@@ -148,7 +154,7 @@ fun SettingsScreen(
     // on the GPU and does not recompose the whole settings screen.
     val sheetOpen = sheet != null
     val blurRadiusDp by animateDpAsState(
-        targetValue = if (sheetOpen) 10.dp else 0.dp,
+        targetValue = if (sheetOpen && UiStylePrefs.blurEnabled) 10.dp else 0.dp,
         animationSpec = if (sheetOpen) {
             tween(300, easing = FastOutSlowInEasing)
         } else {
@@ -343,43 +349,111 @@ fun SettingsScreen(
                                     title = "Energy & Battery",
                                     description = "Optimize animations and background task efficiency",
                                     grouped = true,
-                                    onClick = {}
+                                    onClick = { pageName = SettingsPage.ENERGY.name }
                                 )
                             }
                         }
 
                         SettingsPage.INTERFACE -> {
                             val context = androidx.compose.ui.platform.LocalContext.current
-                            var libraryTabsMode by remember { mutableStateOf(UiStylePrefs.loadLibraryTabsMode(context)) }
+                            remember(context) { UiStylePrefs.ensureLibraryLoaded(context.applicationContext) }
+                            var liveAnimations by remember { mutableStateOf(UiStylePrefs.loadLiveAnimations(context)) }
+                            var cascadeText by remember { mutableStateOf(UiStylePrefs.loadCascadeText(context)) }
+                            remember(context) { UiStylePrefs.ensureMiniLoaded(context.applicationContext) }
                             SettingsGroupCard {
                                 SettingsCardItem(
                                     icon = Icons.Rounded.ViewCarousel,
-                                    title = "Library Swipe Tabs",
-                                    description = "Swipe between Albums, Pins, and Playlists with title and page dots below the top bar",
+                                    title = "Library Layout",
+                                    description = libraryLayoutSummary(),
+                                    grouped = true,
+                                    onClick = { sheetName = SettingsSheet.LIBRARY_LAYOUT.name }
+                                )
+                                SettingsCardItem(
+                                    icon = Icons.Rounded.AutoAwesome,
+                                    title = "Live Animations",
+                                    description = "Seek bar moves the cover, title and buttons; screens, cards and track changes animate with a spring",
                                     grouped = true,
                                     trailing = {
-                                        Switch(
-                                            checked = libraryTabsMode,
+                                        MusikooSwitch(
+                                            checked = liveAnimations,
                                             onCheckedChange = {
-                                                libraryTabsMode = it
-                                                UiStylePrefs.saveLibraryTabsMode(context, it)
+                                                liveAnimations = it
+                                                UiStylePrefs.saveLiveAnimations(context, it)
                                             }
                                         )
                                     },
                                     onClick = {
-                                        val next = !libraryTabsMode
-                                        libraryTabsMode = next
-                                        UiStylePrefs.saveLibraryTabsMode(context, next)
+                                        val next = !liveAnimations
+                                        liveAnimations = next
+                                        UiStylePrefs.saveLiveAnimations(context, next)
                                     }
+                                )
+                                SettingsCardItem(
+                                    icon = Icons.Rounded.TextFields,
+                                    title = "Cascading Text",
+                                    description = "Titles and track names appear letter by letter",
+                                    grouped = true,
+                                    trailing = {
+                                        MusikooSwitch(
+                                            checked = cascadeText,
+                                            onCheckedChange = {
+                                                cascadeText = it
+                                                UiStylePrefs.saveCascadeText(context, it)
+                                            }
+                                        )
+                                    },
+                                    onClick = {
+                                        val next = !cascadeText
+                                        cascadeText = next
+                                        UiStylePrefs.saveCascadeText(context, next)
+                                    }
+                                )
+                                SettingsCardItem(
+                                    icon = Icons.Rounded.ViewWeek,
+                                    title = "Bottom Bar",
+                                    description = "Home screen navigation: search, scrolling items, genre shortcuts",
+                                    grouped = true,
+                                    onClick = { pageName = SettingsPage.BOTTOM_BAR.name }
                                 )
                                 SettingsCardItem(
                                     icon = Icons.Rounded.Gesture,
                                     title = "Mini-player Gestures",
-                                    description = "Swipe controls, favorites toggle, and quick navigation",
+                                    description = "Left: ${UiStylePrefs.miniSwipeLeft.title} · Right: ${UiStylePrefs.miniSwipeRight.title}",
                                     grouped = true,
-                                    onClick = {}
+                                    onClick = { sheetName = SettingsSheet.MINI_GESTURES.name }
                                 )
                             }
+                        }
+
+                        SettingsPage.ENERGY -> {
+                            val context = androidx.compose.ui.platform.LocalContext.current
+                            var blurEnabled by remember { mutableStateOf(UiStylePrefs.loadBlurEnabled(context)) }
+                            SettingsGroupCard {
+                                SettingsCardItem(
+                                    icon = Icons.Rounded.BlurOn,
+                                    title = "Blur Effects",
+                                    description = "Background blur behind sheets and covers, blurred lyrics. Turn off to save battery and GPU",
+                                    grouped = true,
+                                    trailing = {
+                                        MusikooSwitch(
+                                            checked = blurEnabled,
+                                            onCheckedChange = {
+                                                blurEnabled = it
+                                                UiStylePrefs.saveBlurEnabled(context, it)
+                                            }
+                                        )
+                                    },
+                                    onClick = {
+                                        val next = !blurEnabled
+                                        blurEnabled = next
+                                        UiStylePrefs.saveBlurEnabled(context, next)
+                                    }
+                                )
+                            }
+                        }
+
+                        SettingsPage.BOTTOM_BAR -> {
+                            BottomBarSettingsPage(onAddClick = { sheetName = SettingsSheet.BAR_ADD.name })
                         }
 
                         SettingsPage.APPEARANCE -> {
@@ -704,6 +778,41 @@ fun SettingsScreen(
                                     onClick = { onShapeFamilyChange(ShapeFamily.MD3E) }
                                 )
                             }
+                            SettingsSheet.LIBRARY_LAYOUT -> {
+                                LibraryLayoutSheetContent()
+                            }
+                            SettingsSheet.BAR_ADD -> {
+                                BottomBarAddSheetContent(songs = songs)
+                            }
+                            SettingsSheet.MINI_GESTURES -> {
+                                val gestureContext = androidx.compose.ui.platform.LocalContext.current
+                                remember(gestureContext) { UiStylePrefs.ensureMiniLoaded(gestureContext.applicationContext) }
+
+                                Text(
+                                    text = "Mini-player Gestures",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
+                                )
+                                Text(
+                                    text = "Pick what each horizontal swipe on the mini player does. Swipe up always opens the player, a tap opens it too.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 4.dp)
+                                )
+                                GestureDirectionCard(
+                                    title = "Swipe left",
+                                    directionIcon = Icons.Rounded.ChevronLeft,
+                                    selected = UiStylePrefs.miniSwipeLeft,
+                                    onSelect = { UiStylePrefs.saveMiniSwipeLeft(gestureContext.applicationContext, it) }
+                                )
+                                GestureDirectionCard(
+                                    title = "Swipe right",
+                                    directionIcon = Icons.Rounded.ChevronRight,
+                                    selected = UiStylePrefs.miniSwipeRight,
+                                    onSelect = { UiStylePrefs.saveMiniSwipeRight(gestureContext.applicationContext, it) }
+                                )
+                            }
                             SettingsSheet.APP_ICON -> {
                                 SettingsCardItem(
                                     onSheet = true,
@@ -803,6 +912,8 @@ fun SettingsScreen(
                     SettingsPage.DEVICE -> "DEVICE"
                     SettingsPage.INTERFACE -> "INTERFACE & INTERACTION"
                     SettingsPage.APPEARANCE -> "APPEARANCE & TYPEFACE"
+                    SettingsPage.BOTTOM_BAR -> "BOTTOM BAR"
+                    SettingsPage.ENERGY -> "ENERGY & BATTERY"
                 }
             )
 
@@ -952,7 +1063,7 @@ private fun SettingsGroupHeader(
 }
 
 @Composable
-private fun SettingsGroupCard(content: @Composable ColumnScope.() -> Unit) {
+internal fun SettingsGroupCard(content: @Composable ColumnScope.() -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = shapeOf(28.dp),
@@ -968,7 +1079,7 @@ private fun SettingsGroupCard(content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-private fun SettingsCardItem(
+internal fun SettingsCardItem(
     icon: ImageVector,
     title: String,
     description: String,
@@ -1014,7 +1125,7 @@ private fun SettingsCardItem(
             }
             Spacer(modifier = Modifier.width(if (hero) 18.dp else 14.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
+                CascadeText(
                     text = title,
                     style = if (hero) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
@@ -1065,6 +1176,90 @@ private fun SettingsCardItem(
             tonalElevation = if (hero) 2.dp else 0.dp
         ) {
             content()
+        }
+    }
+}
+
+private fun miniActionIcon(action: MiniSwipeAction): ImageVector = when (action) {
+    MiniSwipeAction.FAVORITE -> Icons.Rounded.Favorite
+    MiniSwipeAction.HIDE -> Icons.Rounded.VisibilityOff
+    MiniSwipeAction.NEXT -> Icons.Rounded.SkipNext
+    MiniSwipeAction.PREVIOUS -> Icons.Rounded.SkipPrevious
+    MiniSwipeAction.PLAY_PAUSE -> Icons.Rounded.PlayArrow
+    MiniSwipeAction.NONE -> Icons.Rounded.Block
+}
+
+/** A card with the list of actions one swipe direction can have; the choice is highlighted. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun GestureDirectionCard(
+    title: String,
+    directionIcon: ImageVector,
+    selected: MiniSwipeAction,
+    onSelect: (MiniSwipeAction) -> Unit
+) {
+    val shape = shapeOf(26.dp)
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = shape,
+        color = cardFill(),
+        border = glassStroke(),
+        tonalElevation = 1.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = directionIcon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = selected.title,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                MiniSwipeAction.values().forEach { action ->
+                    FilterChip(
+                        selected = action == selected,
+                        onClick = { onSelect(action) },
+                        label = { Text(action.title) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = miniActionIcon(action),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    )
+                }
+            }
         }
     }
 }

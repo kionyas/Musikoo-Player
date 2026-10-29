@@ -4,6 +4,8 @@ import com.reikoonya.musikoo.ui.components.TrackTextSwap
 import com.reikoonya.musikoo.ui.components.TrackLabel
 import com.reikoonya.musikoo.ui.components.MagicArt
 import com.reikoonya.musikoo.ui.components.coverShapeOf
+import com.reikoonya.musikoo.ui.components.staggeredEntrance
+import com.reikoonya.musikoo.ui.components.tileCascade
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.scaleIn
 import com.reikoonya.musikoo.ui.components.marqueeEdgeFade
@@ -169,40 +171,6 @@ internal fun SectionHeader(
 }
 
 @Composable
-internal fun BottomNavBar(
-    onArtists: () -> Unit,
-    onSongs: () -> Unit,
-    onRandom: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(52.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        NavSegment(
-            stringResource(R.string.artists),
-            Icons.Rounded.Person,
-            Modifier.weight(1f),
-            onArtists
-        )
-        NavSegment(
-            stringResource(R.string.songs),
-            Icons.Rounded.MusicNote,
-            Modifier.weight(1f),
-            onSongs
-        )
-        NavSegment(
-            stringResource(R.string.random),
-            Icons.Rounded.Shuffle,
-            Modifier.weight(1f),
-            onRandom
-        )
-    }
-}
-
-@Composable
 internal fun NavSegment(
     label: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector?,
@@ -325,13 +293,14 @@ internal fun <T> SectionGrid(
             .padding(top = 16.dp, bottom = 4.dp)
     ) {
         val rows = items.chunked(columns)
-        for (row in rows) {
+        for ((rowIndex, row) in rows.withIndex()) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(spacing),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                for (item in row) {
-                    Box(modifier = Modifier.weight(1f)) {
+                for ((col, item) in row.withIndex()) {
+                    // Плитки появляются каскадом (с учётом Live Animations): один раз за запуск приложения
+                    Box(modifier = Modifier.weight(1f).tileCascade(rowIndex * columns + col, offsetY = 20.dp)) {
                         itemContent(item)
                     }
                 }
@@ -342,5 +311,44 @@ internal fun <T> SectionGrid(
                 }
             }
         }
+    }
+}
+
+/** Плитка «+» в конце сетки плейлистов: создаёт новый плейлист. Размеры совпадают с обложкой, строка не «прыгает». */
+@Composable
+internal fun AddPlaylistTile(onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .bounceClickable(shape = coverShapeOf(16.dp), onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(coverShapeOf(16.dp)),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            border = glassStroke(),
+            tonalElevation = 2.dp
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = stringResource(R.string.create_playlist),
+                    modifier = Modifier.size(36.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = "New",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(text = " ", style = MaterialTheme.typography.labelSmall)
     }
 }

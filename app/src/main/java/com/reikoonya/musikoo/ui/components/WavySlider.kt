@@ -4,8 +4,8 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
@@ -31,7 +31,7 @@ import kotlin.math.sin
 private const val TWO_PI = (2 * PI).toFloat()
 
 @Composable
-private fun rememberWaveState(isPlaying: Boolean): Pair<State<Float>, State<Float>> {
+internal fun rememberWaveState(isPlaying: Boolean): Pair<State<Float>, State<Float>> {
     val amplitude = animateFloatAsState(
         targetValue = if (isPlaying) 1f else 0f,
         animationSpec = spring(
@@ -43,10 +43,9 @@ private fun rememberWaveState(isPlaying: Boolean): Pair<State<Float>, State<Floa
     val phase = remember { mutableFloatStateOf(0f) }
     LaunchedEffect(isPlaying) {
         if (isPlaying) {
-            var last = System.nanoTime()
+            var last = withFrameNanos { it }
             while (true) {
-                delay(33)
-                val now = System.nanoTime()
+                val now = withFrameNanos { it }
                 val dt = (now - last) / 1_000_000_000f
                 phase.floatValue = (phase.floatValue + dt * TWO_PI / 1.6f) % TWO_PI
                 last = now
@@ -73,6 +72,7 @@ fun PlayerSlider(
 ) {
     val currentOnValueChange by rememberUpdatedState(onValueChange)
     val currentRange by rememberUpdatedState(valueRange)
+    val currentOnDragging by rememberUpdatedState(onDraggingChanged)
     val (amplitude, phase) = rememberWaveState(isPlaying)
 
     var widthPx by remember { mutableFloatStateOf(1f) }
@@ -85,7 +85,7 @@ fun PlayerSlider(
         targetValue = if (isDragging) 1.35f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
+            stiffness = Spring.StiffnessMedium
         ),
         label = "thumbScale"
     )
@@ -104,37 +104,26 @@ fun PlayerSlider(
             .height(38.dp)
             .onSizeChanged { widthPx = it.width.toFloat().coerceAtLeast(1f) }
             .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        isDragging = true
-                        onDraggingChanged(true)
-                        tryAwaitRelease()
-                        isDragging = false
-                        onDraggingChanged(false)
-                    },
-                    onTap = { offset -> currentOnValueChange(xToValue(offset.x)) }
-                )
-            }
-            .pointerInput(Unit) {
-                detectHorizontalDragGestures(
-                    onDragStart = { offset ->
-                        isDragging = true
-                        onDraggingChanged(true)
-                        currentOnValueChange(xToValue(offset.x))
-                    },
-                    onHorizontalDrag = { change, _ ->
-                        change.consume()
+                // Реагируем сразу на касание (без ожидания touch slop), палец ведёт ползунок без задержки
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    down.consume()
+                    isDragging = true
+                    currentOnDragging(true)
+                    currentOnValueChange(xToValue(down.position.x))
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                        if (!change.pressed) {
+                            change.consume()
+                            break
+                        }
                         currentOnValueChange(xToValue(change.position.x))
-                    },
-                    onDragEnd = {
-                        isDragging = false
-                        onDraggingChanged(false)
-                    },
-                    onDragCancel = {
-                        isDragging = false
-                        onDraggingChanged(false)
+                        change.consume()
                     }
-                )
+                    isDragging = false
+                    currentOnDragging(false)
+                }
             }
     ) {
         val w = size.width

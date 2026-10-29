@@ -112,10 +112,10 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun LibraryTabsHeader(
+    titles: List<String>,
     currentPage: Int,
     onPageSelected: (Int) -> Unit
 ) {
-    val titles = listOf("Albums", "Pins", "Playlists")
     val currentTitle = titles.getOrElse(currentPage) { "Albums" }
 
     Surface(
@@ -188,6 +188,7 @@ fun BoxScope.MainMenuLibrary(
     libraryTabsMode: Boolean,
     onAlbumClick: (String) -> Unit,
     onPlaylistClick: (String) -> Unit,
+    onCreatePlaylist: () -> Unit,
 ) {
     val context = LocalContext.current
 
@@ -219,7 +220,8 @@ fun BoxScope.MainMenuLibrary(
 
     if (mainMode == MainMode.Library) {
         if (libraryTabsMode) {
-            val pagerState = rememberPagerState(pageCount = { 3 })
+            val pages = com.reikoonya.musikoo.util.UiStylePrefs.libraryPages
+            val pagerState = rememberPagerState(pageCount = { pages.size })
             val scope = rememberCoroutineScope()
 
             Box(modifier = Modifier.fillMaxSize()) {
@@ -228,20 +230,30 @@ fun BoxScope.MainMenuLibrary(
                     modifier = Modifier.fillMaxSize()
                 ) { page ->
                     LazyVerticalGrid(
-                        state = rememberPersistentLazyGridState("library_page_$page"),
+                        state = rememberPersistentLazyGridState("library_page_${pages.getOrElse(page) { page.toString() }}"),
                         columns = GridCells.Fixed(3),
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier.fillMaxSize().graphicsLayer {
+                            // Соседняя страница чуть меньше и прозрачнее: свайп выглядит как плавный переход
+                            if (!com.reikoonya.musikoo.util.UiStylePrefs.liveAnimations) return@graphicsLayer
+                            val distance = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction)
+                                .let { if (it < 0f) -it else it }
+                                .coerceIn(0f, 1f)
+                            val s = 1f - 0.06f * distance
+                            scaleX = s
+                            scaleY = s
+                            alpha = 1f - 0.5f * distance
+                        },
                         contentPadding = PaddingValues(
                             top = 132.dp,
-                            bottom = if (currentSong != null && !isMiniPlayerHidden) 220.dp else 140.dp,
+                            bottom = if (currentSong != null && !isMiniPlayerHidden) 246.dp else 140.dp,
                             start = 16.dp,
                             end = 16.dp
                         ),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        when (page) {
-                            0 -> { // Albums
+                        when (pages.getOrNull(page)) {
+                            "albums" -> {
                                 if (albums.isNotEmpty()) {
                                     item(span = { GridItemSpan(3) }) {
                                         SectionGrid(
@@ -306,7 +318,7 @@ fun BoxScope.MainMenuLibrary(
                                     }
                                 }
                             }
-                            1 -> { // Pins
+                            "pins" -> {
                                 if (pinnedPlaylists.isNotEmpty() || pinnedAlbumsList.isNotEmpty()) {
                                     item(span = { GridItemSpan(3) }) {
                                         SectionGrid(
@@ -423,13 +435,17 @@ fun BoxScope.MainMenuLibrary(
                                     }
                                 }
                             }
-                            2 -> { // Playlists
-                                if (playlists.isNotEmpty()) {
+                            "playlists" -> {
+                                run {
                                     item(span = { GridItemSpan(3) }) {
                                         SectionGrid(
-                                            items = playlists,
+                                            items = playlists + null,
                                             columns = 3
                                         ) { playlist ->
+                                            if (playlist == null) {
+                                                AddPlaylistTile(onClick = onCreatePlaylist)
+                                                return@SectionGrid
+                                            }
                                             Column(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
@@ -472,6 +488,7 @@ fun BoxScope.MainMenuLibrary(
                                     }
                                 }
                             }
+                            else -> {}
                         }
                     }
                 }
@@ -489,7 +506,8 @@ fun BoxScope.MainMenuLibrary(
                     contentAlignment = Alignment.Center
                 ) {
                     LibraryTabsHeader(
-                        currentPage = pagerState.currentPage,
+                        titles = pages.map { libraryTitle(it) },
+                        currentPage = pagerState.currentPage.coerceIn(0, pages.lastIndex),
                         onPageSelected = { page ->
                             scope.launch { pagerState.animateScrollToPage(page) }
                         }
@@ -504,7 +522,7 @@ fun BoxScope.MainMenuLibrary(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     top = 92.dp,
-                    bottom = if (currentSong != null && !isMiniPlayerHidden) 220.dp else 140.dp,
+                    bottom = if (currentSong != null && !isMiniPlayerHidden) 246.dp else 140.dp,
                     start = 16.dp,
                     end = 16.dp
                 ),
@@ -512,7 +530,8 @@ fun BoxScope.MainMenuLibrary(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // 1. PINNED SECTION
-                if (pinnedPlaylists.isNotEmpty() || pinnedAlbumsList.isNotEmpty()) {
+                val classic = com.reikoonya.musikoo.util.UiStylePrefs.classicSections
+                if ("pins" in classic && (pinnedPlaylists.isNotEmpty() || pinnedAlbumsList.isNotEmpty())) {
                     item(span = { GridItemSpan(3) }) {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             SectionHeader(
@@ -652,7 +671,7 @@ fun BoxScope.MainMenuLibrary(
                 }
 
                 // 2. PLAYLISTS SECTION
-                if (playlists.isNotEmpty()) {
+                if ("playlists" in classic) {
                     item(span = { GridItemSpan(3) }) {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             SectionHeader(
@@ -671,9 +690,13 @@ fun BoxScope.MainMenuLibrary(
                                 exit = shrinkVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy)) + fadeOut()
                             ) {
                                 SectionGrid(
-                                    items = playlists,
+                                    items = playlists + null,
                                     columns = 3
                                 ) { playlist ->
+                                    if (playlist == null) {
+                                        AddPlaylistTile(onClick = onCreatePlaylist)
+                                        return@SectionGrid
+                                    }
                                     Column(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -720,7 +743,7 @@ fun BoxScope.MainMenuLibrary(
                 }
 
                 // 3. ALBUMS SECTION
-                item(span = { GridItemSpan(3) }) {
+                if ("albums" in classic) item(span = { GridItemSpan(3) }) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         if (showSections && albums.isNotEmpty()) {
                             SectionHeader(
@@ -749,10 +772,10 @@ fun BoxScope.MainMenuLibrary(
                                         .bounceCombinedClickable(
                                             shape = coverShapeOf(16.dp),
                                             onLongClick = { dialogs.actionsAlbum = albumName }) {
-                                        onAlbumClick(
-                                            albumName
-                                        )
-                                    },
+                                            onAlbumClick(
+                                                albumName
+                                            )
+                                        },
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Surface(
@@ -810,11 +833,20 @@ fun BoxScope.MainMenuLibrary(
             songs = songs,
             contentPadding = PaddingValues(
                 top = 92.dp,
-                bottom = if (currentSong != null && !isMiniPlayerHidden) 220.dp else 140.dp,
+                bottom = if (currentSong != null && !isMiniPlayerHidden) 246.dp else 140.dp,
                 start = 16.dp,
                 end = 16.dp
             ),
             modifier = Modifier.fillMaxSize()
         )
+        // Top fade scrim: list rows softly disappear under the top pill, like on the other screens
+        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
     }
+}
+/** Название страницы свайпов по ключу раздела. */
+internal fun libraryTitle(key: String): String = when (key) {
+    "albums" -> "Albums"
+    "pins" -> "Pins"
+    "playlists" -> "Playlists"
+    else -> key
 }
