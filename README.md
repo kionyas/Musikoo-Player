@@ -1,6 +1,6 @@
 <div align="center">
 
-# ★ Musikoo
+# ★ Musikoo ★
 
 **A local music player for Android with Material 3 Expressive design, word-synced lyrics and a fully customizable home screen.**
 
