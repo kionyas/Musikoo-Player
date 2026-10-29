@@ -12,6 +12,9 @@
 
 [Download](https://github.com/kionyas/Musikoo-Player/releases/latest) · [Features](#-features) · [Screenshots](#-screenshots) · [Build](#-build-from-source)
 
+<img width="735" height="428" alt="banner" src="https://github.com/user-attachments/assets/bc253328-5c8a-4122-8c09-6d12207b4cef" />
+
+
 </div>
 
 ---
