@@ -2,7 +2,7 @@ package com.reikoonya.musikoo.ui
 
 import com.reikoonya.musikoo.ui.components.CascadeText
 import com.reikoonya.musikoo.ui.components.coverShapeOf
-import com.reikoonya.musikoo.ui.components.TopPill
+import com.reikoonya.musikoo.ui.components.TopBarTitle
 import com.reikoonya.musikoo.ui.components.shapeOf
 import com.reikoonya.musikoo.ui.components.rememberPersistentLazyListState
 import androidx.compose.material.icons.rounded.*
@@ -37,6 +37,7 @@ import androidx.compose.ui.zIndex
 import com.reikoonya.musikoo.R
 import com.reikoonya.musikoo.ui.components.ArtBackdrop
 import com.reikoonya.musikoo.ui.components.TopFadeScrim
+import com.reikoonya.musikoo.ui.components.topFadeBlur
 import com.reikoonya.musikoo.ui.components.bounceClickable
 import com.reikoonya.musikoo.ui.components.cardFill
 import com.reikoonya.musikoo.ui.components.glassFill
@@ -46,6 +47,7 @@ import com.reikoonya.musikoo.ui.components.rememberSongArt
 import com.reikoonya.musikoo.util.MusicPlayerManager
 import com.reikoonya.musikoo.util.formatTime
 import kotlin.math.roundToInt
+import com.reikoonya.musikoo.ui.components.marqueeEdgeFade
 
 @Composable
 fun QueueScreen(
@@ -67,7 +69,7 @@ fun QueueScreen(
 
         LazyColumn(
             state = rememberPersistentLazyListState("queue"),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().topFadeBlur(),
             contentPadding = PaddingValues(top = 92.dp, bottom = 24.dp, start = 16.dp, end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -238,7 +240,8 @@ fun QueueScreen(
                                     fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Bold,
                                     color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    modifier = Modifier.marqueeEdgeFade(),
+                                    softWrap = false
                                 )
                             }
                             Text(
@@ -246,7 +249,8 @@ fun QueueScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                modifier = Modifier.marqueeEdgeFade(),
+                                softWrap = false
                             )
                         }
 
@@ -316,7 +320,7 @@ fun QueueScreen(
         }
 
         // Top gradient scrim
-        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
+        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter), blurred = true)
 
         // Floating Top Bar Pill
         Row(
@@ -346,7 +350,7 @@ fun QueueScreen(
                 }
             }
 
-            TopPill(
+            TopBarTitle(
                 text = stringResource(R.string.up_next).uppercase()
             )
 

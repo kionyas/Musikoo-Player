@@ -104,6 +104,7 @@ import com.reikoonya.musikoo.ui.components.glassFill
 import com.reikoonya.musikoo.ui.components.glassStroke
 import com.reikoonya.musikoo.util.MusicPlayerManager
 import kotlinx.coroutines.launch
+import com.reikoonya.musikoo.ui.components.lightBlur
 
 /** Search UI state, kept by MainActivity so it survives switching between tabs. */
 
@@ -207,12 +208,26 @@ fun MainMenuScreen(
     remember(context) { com.reikoonya.musikoo.util.UiStylePrefs.ensureLibraryLoaded(context) }
     val libraryTabsMode = com.reikoonya.musikoo.util.UiStylePrefs.libraryTabsEnabled
     var mainMode by rememberSaveable { mutableStateOf(MainMode.Library) }
+    var menuSheetOpen by rememberSaveable { mutableStateOf(false) }
+    val titleState = remember { LibraryTitleState() }
+    // Из статистики системная «назад» возвращает в библиотеку
+    BackHandler(enabled = mainMode == MainMode.Stats && !searchOpen && !menuSheetOpen) {
+        mainMode = MainMode.Library
+    }
+
+    // Soft blur of everything under the menu sheet (cheap: radius is read in the draw phase only)
+    val menuBlur by animateDpAsState(
+        targetValue = if (menuSheetOpen && com.reikoonya.musikoo.util.UiStylePrefs.blurEnabled) 8.dp else 0.dp,
+        animationSpec = if (menuSheetOpen) tween(300, easing = FastOutSlowInEasing) else tween(160, easing = FastOutSlowInEasing),
+        label = "menuSheetBlur"
+    )
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface)
     ) {
+        Box(modifier = Modifier.fillMaxSize().lightBlur { menuBlur }) {
         MainMenuLibrary(
             mainMode = mainMode,
             songs = songs,
@@ -229,6 +244,7 @@ fun MainMenuScreen(
             onAlbumClick = onAlbumClick,
             onPlaylistClick = onPlaylistClick,
             onCreatePlaylist = onCreatePlaylist,
+            titleState = titleState,
         )
 
         BottomFadeScrim(modifier = Modifier.align(Alignment.BottomCenter))
@@ -242,6 +258,10 @@ fun MainMenuScreen(
             onAlbumClick = onAlbumClick,
             onSettingsClick = onSettingsClick,
             onAboutClick = onAboutClick,
+            libraryTabsMode = libraryTabsMode,
+            titleState = titleState,
+            onMenuClick = { menuSheetOpen = true },
+            menuOpen = menuSheetOpen,
         )
 
 
@@ -262,6 +282,28 @@ fun MainMenuScreen(
             onPlaylistsClick = onPlaylistsClick,
             onRandomizeClick = onRandomizeClick,
         )
+        }
 
+        MainMenuSheet(
+            visible = menuSheetOpen,
+            mainMode = mainMode,
+            onDismiss = { menuSheetOpen = false },
+            onLibraryClick = {
+                mainMode = MainMode.Library
+                menuSheetOpen = false
+            },
+            onStatisticsClick = {
+                mainMode = MainMode.Stats
+                menuSheetOpen = false
+            },
+            onSettingsClick = {
+                menuSheetOpen = false
+                onSettingsClick()
+            },
+            onAboutClick = {
+                menuSheetOpen = false
+                onAboutClick()
+            },
+        )
     }
 }

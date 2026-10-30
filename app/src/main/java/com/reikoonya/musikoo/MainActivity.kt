@@ -89,6 +89,7 @@ import com.reikoonya.musikoo.util.normalizeArtistName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.random.Random
+import com.reikoonya.musikoo.ui.components.lightBlur
 
 /** True when notifications may be shown: always on Android versions before 13, which need no permission. */
 private fun hasNotificationPermission(context: Context): Boolean =
@@ -584,7 +585,7 @@ class MainActivity : ComponentActivity() {
 
                     // Everything under a sheet gets blurred smoothly
                     val sheetBlur by animateDpAsState(
-                        targetValue = if (sheetScreen != null && UiStylePrefs.blurEnabled) 14.dp else 0.dp,
+                        targetValue = if (sheetScreen != null && UiStylePrefs.blurEnabled) 8.dp else 0.dp,
                         animationSpec = if (sheetScreen != null) {
                             tween(320, easing = FastOutSlowInEasing)
                         } else {
@@ -597,7 +598,7 @@ class MainActivity : ComponentActivity() {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .blur(sheetBlur, BlurredEdgeTreatment.Rectangle)
+                                .lightBlur { sheetBlur }
                         ) {
                             AnimatedContent(
                                 targetState = baseScreen,
@@ -642,14 +643,14 @@ class MainActivity : ComponentActivity() {
                                 ) { state ->
                                     when (state) {
                                         EnterExitState.Visible -> 0.dp
-                                        EnterExitState.PostExit -> if (UiStylePrefs.blurEnabled) 18.dp else 0.dp
-                                        EnterExitState.PreEnter -> if (screen is Screen.MainMenu && UiStylePrefs.blurEnabled) 18.dp else 0.dp
+                                        EnterExitState.PostExit -> if (UiStylePrefs.blurEnabled) 10.dp else 0.dp
+                                        EnterExitState.PreEnter -> if (screen is Screen.MainMenu && UiStylePrefs.blurEnabled) 10.dp else 0.dp
                                     }
                                 }
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .blur(coverBlur, BlurredEdgeTreatment.Rectangle)
+                                        .lightBlur { coverBlur }
                                 ) {
                                     ScreenContent(screen)
                                 }

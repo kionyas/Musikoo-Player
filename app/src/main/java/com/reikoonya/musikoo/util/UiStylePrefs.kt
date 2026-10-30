@@ -115,6 +115,8 @@ object UiStylePrefs {
     private const val KEY_LIVE_LEGACY = "live_slider_animations"
     private const val KEY_CASCADE_TEXT = "cascade_text"
     private const val KEY_BLUR_ENABLED = "blur_enabled"
+    private const val KEY_TOP_FADE_BLUR = "top_fade_blur"
+    private const val KEY_MENU_TOP_BAR = "menu_top_bar"
     private var liveLoaded = false
 
     /**
@@ -130,6 +132,20 @@ object UiStylePrefs {
      * Наблюдаемое значение: действует сразу.
      */
     var blurEnabled by mutableStateOf(true)
+        private set
+
+    /**
+     * Верхний фейд-блюр (как в iOS / ColorOS): список под шапкой плавно размывается и растворяется.
+     * Работает только при включённом Blur Effects и на Android 12+. Наблюдаемое значение.
+     */
+    var topFadeBlur by mutableStateOf(true)
+        private set
+
+    /**
+     * Новая верхняя панель главного экрана: «⋯» открывает боковое меню (Statistics, Settings, About),
+     * рядом заголовок Library / название страницы свайпов. Наблюдаемое значение.
+     */
+    var menuTopBar by mutableStateOf(true)
         private set
 
     /** Каскадный текст: заголовки и названия проявляются по буквам. Наблюдаемое значение. */
@@ -149,6 +165,36 @@ object UiStylePrefs {
         }
         cascadeText = prefs.getBoolean(KEY_CASCADE_TEXT, true)
         blurEnabled = prefs.getBoolean(KEY_BLUR_ENABLED, true)
+        topFadeBlur = prefs.getBoolean(KEY_TOP_FADE_BLUR, true)
+        menuTopBar = prefs.getBoolean(KEY_MENU_TOP_BAR, true)
+    }
+
+    fun loadMenuTopBar(context: Context): Boolean {
+        ensureLoaded(context)
+        return menuTopBar
+    }
+
+    fun saveMenuTopBar(context: Context, enabled: Boolean) {
+        ensureLoaded(context)
+        menuTopBar = enabled
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_MENU_TOP_BAR, enabled)
+            .apply()
+    }
+
+    fun loadTopFadeBlur(context: Context): Boolean {
+        ensureLoaded(context)
+        return topFadeBlur
+    }
+
+    fun saveTopFadeBlur(context: Context, enabled: Boolean) {
+        ensureLoaded(context)
+        topFadeBlur = enabled
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_TOP_FADE_BLUR, enabled)
+            .apply()
     }
 
     fun loadBlurEnabled(context: Context): Boolean {

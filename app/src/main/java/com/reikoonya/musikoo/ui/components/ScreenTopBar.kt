@@ -211,6 +211,7 @@ fun ScreenTopBar(
             }
         )
 
+        val menuStyle = rememberMenuTopBarActive()
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -236,6 +237,8 @@ fun ScreenTopBar(
                         placeholder = searchHint,
                         modifier = Modifier.fillMaxWidth()
                     )
+                } else if (menuStyle) {
+                    PlainTopTitle(text = title)
                 } else {
                     TopPill(text = title)
                 }

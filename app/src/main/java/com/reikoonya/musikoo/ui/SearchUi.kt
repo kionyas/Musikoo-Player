@@ -71,6 +71,8 @@ import com.reikoonya.musikoo.model.Song
 import com.reikoonya.musikoo.util.hasGenre
 import com.reikoonya.musikoo.ui.components.cardFill
 import com.reikoonya.musikoo.ui.components.glassStroke
+import com.reikoonya.musikoo.ui.components.topFadeBlur
+import com.reikoonya.musikoo.ui.components.marqueeEdgeFade
 
 /** What the search looks at. Songs is the default. */
 enum class SearchMode(val label: String, val icon: ImageVector, val hint: String) {
@@ -199,7 +201,7 @@ fun SearchResultsList(
         if (hits.isNotEmpty()) listState.scrollToItem(hits.size - 1)
     }
     LazyColumn(
-        modifier = modifier,
+        modifier = modifier.topFadeBlur(),
         state = listState,
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 96.dp, bottom = 184.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)
@@ -251,14 +253,16 @@ private fun SongRow(song: Song, mode: SearchMode, onClick: () -> Unit) {
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    modifier = Modifier.marqueeEdgeFade(),
+                    softWrap = false
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    modifier = Modifier.marqueeEdgeFade(),
+                    softWrap = false
                 )
             }
         }
@@ -286,14 +290,16 @@ private fun AlbumRow(hit: SearchHit.AlbumHit, onClick: () -> Unit) {
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    modifier = Modifier.marqueeEdgeFade(),
+                    softWrap = false
                 )
                 Text(
                     text = "${hit.artist} · ${hit.count} songs",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    modifier = Modifier.marqueeEdgeFade(),
+                    softWrap = false
                 )
             }
         }

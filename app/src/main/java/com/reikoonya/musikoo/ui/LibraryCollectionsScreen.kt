@@ -51,6 +51,7 @@ import com.reikoonya.musikoo.ui.components.CreatePlaylistDialog
 import com.reikoonya.musikoo.ui.components.PlaylistArt
 import com.reikoonya.musikoo.ui.components.ScreenTopBar
 import com.reikoonya.musikoo.ui.components.TopFadeScrim
+import com.reikoonya.musikoo.ui.components.topFadeBlur
 import com.reikoonya.musikoo.ui.components.bounceClickable
 import com.reikoonya.musikoo.ui.components.coverShapeOf
 import com.reikoonya.musikoo.ui.components.nowPlayingArt
@@ -58,6 +59,7 @@ import com.reikoonya.musikoo.ui.components.rememberPersistentLazyGridState
 import com.reikoonya.musikoo.ui.components.rememberSongArt
 import com.reikoonya.musikoo.ui.components.staggeredEntrance
 import com.reikoonya.musikoo.ui.components.swipeDownToBack
+import com.reikoonya.musikoo.ui.components.marqueeEdgeFade
 
 /** Плейлисты и закреплённые альбомы; перечитываются при каждом изменении в [PlaylistManager]. */
 private data class LibraryCollections(val playlists: List<Playlist>, val pinnedAlbums: Set<String>)
@@ -103,7 +105,7 @@ fun PinsScreen(
         LazyVerticalGrid(
             state = rememberPersistentLazyGridState("pins"),
             columns = GridCells.Fixed(3),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().topFadeBlur(),
             contentPadding = PaddingValues(top = 92.dp, bottom = 24.dp, start = 16.dp, end = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -134,7 +136,7 @@ fun PinsScreen(
             }
         }
 
-        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
+        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter), blurred = true)
         ScreenTopBar(
             title = stringResource(R.string.nav_pins),
             onBack = onBackClick,
@@ -164,7 +166,7 @@ fun PlaylistsScreen(
         LazyVerticalGrid(
             state = rememberPersistentLazyGridState("playlists"),
             columns = GridCells.Fixed(3),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().topFadeBlur(),
             contentPadding = PaddingValues(top = 92.dp, bottom = 24.dp, start = 16.dp, end = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -181,7 +183,7 @@ fun PlaylistsScreen(
             }
         }
 
-        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
+        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter), blurred = true)
         ScreenTopBar(
             title = stringResource(R.string.nav_playlists),
             onBack = onBackClick,
@@ -258,7 +260,8 @@ private fun TileCaption(title: String, subtitle: String) {
         style = MaterialTheme.typography.bodyMedium,
         fontWeight = FontWeight.Bold,
         maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.marqueeEdgeFade(),
+        softWrap = false,
         color = MaterialTheme.colorScheme.onSurface
     )
     Text(
@@ -266,6 +269,7 @@ private fun TileCaption(title: String, subtitle: String) {
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 1,
-        overflow = TextOverflow.Ellipsis
+        modifier = Modifier.marqueeEdgeFade(),
+        softWrap = false
     )
 }

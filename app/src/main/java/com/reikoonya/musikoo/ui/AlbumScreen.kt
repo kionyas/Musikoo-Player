@@ -47,6 +47,7 @@ import com.reikoonya.musikoo.ui.components.ActionsDialog
 import com.reikoonya.musikoo.ui.components.ArtBackdrop
 import com.reikoonya.musikoo.ui.components.MenuAction
 import com.reikoonya.musikoo.ui.components.TopFadeScrim
+import com.reikoonya.musikoo.ui.components.topFadeBlur
 import com.reikoonya.musikoo.ui.components.bounceCombinedClickable
 import com.reikoonya.musikoo.ui.components.bounceClickable
 import com.reikoonya.musikoo.ui.components.cardFill
@@ -55,6 +56,7 @@ import com.reikoonya.musikoo.ui.components.glassStroke
 import com.reikoonya.musikoo.ui.components.listItemColors
 import com.reikoonya.musikoo.ui.components.nowPlayingArt
 import com.reikoonya.musikoo.model.Song
+import com.reikoonya.musikoo.ui.components.marqueeEdgeFade
 
 @Composable
 fun AlbumsScreen(
@@ -114,7 +116,7 @@ fun AlbumsScreen(
         LazyVerticalGrid(
             state = rememberPersistentLazyGridState("albums"),
             columns = GridCells.Fixed(2),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().topFadeBlur(),
             contentPadding = PaddingValues(top = 92.dp, bottom = 24.dp, start = 16.dp, end = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -174,9 +176,9 @@ fun AlbumsScreen(
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
+                            softWrap = false,
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth().marqueeEdgeFade(centerWhenFits = true)
                         )
                         Text(
                             text = stringResource(R.string.tracks_count, albumSongs.size),
@@ -191,7 +193,7 @@ fun AlbumsScreen(
         }
 
         // Top gradient scrim
-        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
+        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter), blurred = true)
 
         ScreenTopBar(
             title = stringResource(R.string.albums_count, albums.size),

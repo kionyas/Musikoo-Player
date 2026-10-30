@@ -149,7 +149,8 @@ private fun GlassPill(
                 fontWeight = FontWeight.SemiBold,
                 color = tint,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                modifier = Modifier.marqueeEdgeFade(),
+                softWrap = false
             )
         }
     }

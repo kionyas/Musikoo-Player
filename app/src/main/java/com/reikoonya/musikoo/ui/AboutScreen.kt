@@ -1,7 +1,7 @@
 package com.reikoonya.musikoo.ui
 
 import com.reikoonya.musikoo.ui.components.CascadeText
-import com.reikoonya.musikoo.ui.components.TopPill
+import com.reikoonya.musikoo.ui.components.TopBarTitle
 import com.reikoonya.musikoo.ui.components.shapeOf
 import androidx.compose.material.icons.rounded.*
 import android.content.Context
@@ -349,7 +349,7 @@ fun AboutScreen(
                 }
             }
 
-            TopPill(
+            TopBarTitle(
                 text = stringResource(R.string.about)
             )
 

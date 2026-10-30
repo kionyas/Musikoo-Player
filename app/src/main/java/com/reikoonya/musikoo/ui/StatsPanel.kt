@@ -109,6 +109,8 @@ import kotlinx.coroutines.delay
 import kotlin.math.abs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.reikoonya.musikoo.ui.components.topFadeBlur
+import com.reikoonya.musikoo.ui.components.marqueeEdgeFade
 
 /** What the main screen shows under the pill. */
 enum class MainMode(val label: String) {
@@ -257,7 +259,7 @@ fun StatsPanel(
     }
 
     LazyColumn(
-        modifier = modifier,
+        modifier = modifier.topFadeBlur(),
         contentPadding = contentPadding,
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
@@ -587,7 +589,8 @@ private fun RowScope.StatTile(
                         fontWeight = FontWeight.ExtraBold,
                         color = content,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        modifier = Modifier.marqueeEdgeFade(),
+                        softWrap = false
                     )
                 }
                 Text(
@@ -763,7 +766,8 @@ private fun StatRow(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                modifier = Modifier.marqueeEdgeFade(),
+                softWrap = false
             )
             if (item.subtitle.isNotBlank()) {
                 Text(
@@ -771,7 +775,8 @@ private fun StatRow(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    modifier = Modifier.marqueeEdgeFade(),
+                    softWrap = false
                 )
             }
             if (unit != null && item.count > 0) {

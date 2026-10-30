@@ -55,6 +55,7 @@ import com.reikoonya.musikoo.ui.components.ArtBackdrop
 import com.reikoonya.musikoo.ui.components.ScreenTopBar
 import com.reikoonya.musikoo.ui.components.SearchNoResults
 import com.reikoonya.musikoo.ui.components.TopFadeScrim
+import com.reikoonya.musikoo.ui.components.topFadeBlur
 import com.reikoonya.musikoo.ui.components.bounceClickable
 import com.reikoonya.musikoo.ui.components.cardFill
 import com.reikoonya.musikoo.ui.components.matchesQuery
@@ -62,6 +63,7 @@ import com.reikoonya.musikoo.ui.components.nowPlayingArt
 import com.reikoonya.musikoo.ui.components.rememberScreenSearchState
 import com.reikoonya.musikoo.ui.components.rememberSongArt
 import com.reikoonya.musikoo.ui.components.shapeOf
+import com.reikoonya.musikoo.ui.components.marqueeEdgeFade
 
 /**
  * Экран выбора песен для плейлиста: поиск, отметки, «выбрать все найденные» и одна кнопка «Add».
@@ -97,7 +99,7 @@ fun SongPickerScreen(
         ArtBackdrop(art = nowPlayingArt(), topScrim = 0.55f, midScrim = 0.82f)
 
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().topFadeBlur(),
             contentPadding = PaddingValues(top = 92.dp, bottom = 120.dp, start = 16.dp, end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -191,14 +193,16 @@ fun SongPickerScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                modifier = Modifier.marqueeEdgeFade(),
+                                softWrap = false
                             )
                             Text(
                                 text = song.artist,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                modifier = Modifier.marqueeEdgeFade(),
+                                softWrap = false
                             )
                         }
                         // Само нажатие обрабатывает строка, чекбокс только показывает состояние
@@ -208,7 +212,7 @@ fun SongPickerScreen(
             }
         }
 
-        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
+        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter), blurred = true)
 
         ScreenTopBar(
             title = playlist?.name?.let { "Add to $it" } ?: "Add songs",

@@ -37,12 +37,15 @@ import kotlin.math.roundToInt
  *   the right edge fades only while there is still hidden text on that side.
  *
  * Replaces basicMarquee() + a constant edge fade: use it alone, without basicMarquee().
+ * [centerWhenFits]: for centered labels (textAlign = Center + fillMaxWidth): a text that fits stays centered.
+ * The Text itself must have softWrap = false and maxLines = 1.
  */
 fun Modifier.marqueeEdgeFade(
     width: Dp = 16.dp,
     velocity: Dp = 38.dp,
     initialDelayMillis: Int = 1400,
     endPauseMillis: Int = 900,
+    centerWhenFits: Boolean = false,
 ): Modifier = composed {
     var contentWidth by remember { mutableIntStateOf(0) }
     var viewWidth by remember { mutableIntStateOf(0) }
@@ -66,7 +69,10 @@ fun Modifier.marqueeEdgeFade(
 
     this
         .clipToBounds()
-        .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+        // The offscreen layer is only needed for the fading edges, i.e. while the text really runs
+        .graphicsLayer {
+            compositingStrategy = if (contentWidth > viewWidth) CompositingStrategy.Offscreen else CompositingStrategy.Auto
+        }
         .drawWithContent {
             drawContent()
             val distance = contentWidth - size.width
@@ -111,7 +117,9 @@ fun Modifier.marqueeEdgeFade(
             if (contentWidth != placeable.width) contentWidth = placeable.width
             if (viewWidth != w) viewWidth = w
             layout(w, placeable.height) {
-                placeable.placeRelative(-offset.value.roundToInt(), 0)
+                // Text that fits: at the start, or centered for centered labels (the window is wider than the text)
+                val x = if (centerWhenFits && placeable.width < w) (w - placeable.width) / 2 else -offset.value.roundToInt()
+                placeable.placeRelative(x, 0)
             }
         }
 }

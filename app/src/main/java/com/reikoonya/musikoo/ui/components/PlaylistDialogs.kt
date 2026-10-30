@@ -213,7 +213,8 @@ fun AddToPlaylistDialog(
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = FontWeight.Bold,
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                            modifier = Modifier.marqueeEdgeFade(),
+                                            softWrap = false
                                         )
                                         Text(
                                             text = stringResource(R.string.tracks_count, playlist.songIds.size),
@@ -387,14 +388,16 @@ fun EditPlaylistDialog(
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        modifier = Modifier.marqueeEdgeFade(),
+                                        softWrap = false
                                     )
                                     Text(
                                         text = song.artist,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        modifier = Modifier.marqueeEdgeFade(),
+                                        softWrap = false
                                     )
                                 }
 

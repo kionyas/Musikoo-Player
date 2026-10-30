@@ -95,6 +95,7 @@ import com.reikoonya.musikoo.ui.components.ArtBackdrop
 import com.reikoonya.musikoo.ui.components.CascadeText
 import com.reikoonya.musikoo.ui.components.MenuAction
 import com.reikoonya.musikoo.ui.components.TopFadeScrim
+import com.reikoonya.musikoo.ui.components.topFadeBlur
 import com.reikoonya.musikoo.ui.components.TopPill
 import com.reikoonya.musikoo.ui.components.bounceClickable
 import com.reikoonya.musikoo.ui.components.bounceCombinedClickable
@@ -114,6 +115,7 @@ import com.reikoonya.musikoo.util.BottomBarPrefs
 import com.reikoonya.musikoo.util.ShareUtils
 import com.reikoonya.musikoo.util.groupByGenre
 import com.reikoonya.musikoo.util.hasGenre
+import com.reikoonya.musikoo.ui.components.marqueeEdgeFade
 
 /** Все жанры библиотеки сеткой, как альбомы. Долгое нажатие закрепляет жанр на нижней панели. */
 @Composable
@@ -152,7 +154,7 @@ fun GenresScreen(
         LazyVerticalGrid(
             state = rememberPersistentLazyGridState("genres"),
             columns = GridCells.Fixed(2),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().topFadeBlur(),
             contentPadding = PaddingValues(top = 92.dp, bottom = 24.dp, start = 16.dp, end = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -229,9 +231,9 @@ fun GenresScreen(
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
+                                softWrap = false,
                                 textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth().marqueeEdgeFade(centerWhenFits = true)
                             )
                             Text(
                                 text = stringResource(R.string.tracks_count, group.songs.size),
@@ -248,7 +250,7 @@ fun GenresScreen(
             }
         }
 
-        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
+        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter), blurred = true)
 
         ScreenTopBar(
             title = stringResource(R.string.genres_count, groups.size),
@@ -357,7 +359,7 @@ fun GenreDetailScreen(
 
         LazyColumn(
             state = rememberPersistentLazyListState("genre:$genreName"),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().topFadeBlur(),
             contentPadding = PaddingValues(top = 92.dp, bottom = 24.dp, start = 16.dp, end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -500,14 +502,16 @@ fun GenreDetailScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                modifier = Modifier.marqueeEdgeFade(),
+                                softWrap = false
                             )
                             Text(
                                 text = "${song.artist} · ${song.album}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                modifier = Modifier.marqueeEdgeFade(),
+                                softWrap = false
                             )
                         }
                     }
@@ -515,7 +519,7 @@ fun GenreDetailScreen(
             }
         }
 
-        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
+        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter), blurred = true)
 
         ScreenTopBar(
             title = genreName.uppercase(),

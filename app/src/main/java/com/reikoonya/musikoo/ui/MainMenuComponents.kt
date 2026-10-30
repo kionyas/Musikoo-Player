@@ -203,8 +203,8 @@ internal fun NavSegment(
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
+                    modifier = Modifier.marqueeEdgeFade(),
                     softWrap = false,
-                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -246,8 +246,8 @@ internal fun CollapsedSearchPill(
                 style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
+                softWrap = false,
+                modifier = Modifier.weight(1f).marqueeEdgeFade()
             )
             BounceIconButton(
                 onClick = onToggleNav,

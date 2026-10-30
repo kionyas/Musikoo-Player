@@ -373,7 +373,24 @@ fun PlayerScreen(
                         .padding(horizontal = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Surface(
+                    if (com.reikoonya.musikoo.ui.components.rememberMenuTopBarActive()) {
+                        // New header: no pill, just the album name in the center (tap still opens the album)
+                        Box(
+                            modifier = Modifier
+                                .bounceClickable(shape = CircleShape) {
+                                    currentSong?.album?.takeIf { it.isNotBlank() }?.let { album ->
+                                        onAlbumClick(album)
+                                    }
+                                }
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            com.reikoonya.musikoo.ui.components.PlainTopTitle(
+                                text = currentSong?.album?.takeIf { it.isNotBlank() } ?: "",
+                                normalizeCase = false
+                            )
+                        }
+                    } else Surface(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
                         modifier = Modifier
@@ -775,7 +792,8 @@ private fun PropertyRow(label: String, value: String) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            modifier = Modifier.marqueeEdgeFade(),
+            softWrap = false
         )
     }
 }

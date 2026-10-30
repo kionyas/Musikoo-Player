@@ -56,6 +56,7 @@ import com.reikoonya.musikoo.ui.components.AddToPlaylistDialog
 import com.reikoonya.musikoo.ui.components.ArtBackdrop
 import com.reikoonya.musikoo.ui.components.MenuAction
 import com.reikoonya.musikoo.ui.components.TopFadeScrim
+import com.reikoonya.musikoo.ui.components.topFadeBlur
 import com.reikoonya.musikoo.ui.components.bounceClickable
 import com.reikoonya.musikoo.ui.components.bounceCombinedClickable
 import com.reikoonya.musikoo.ui.components.cardFill
@@ -66,6 +67,9 @@ import com.reikoonya.musikoo.ui.components.rememberSongArt
 import com.reikoonya.musikoo.util.ShareUtils
 import com.reikoonya.musikoo.util.formatTime
 import com.reikoonya.musikoo.util.normalizeArtistName
+import com.reikoonya.musikoo.ui.components.PlainTopTitle
+import com.reikoonya.musikoo.ui.components.rememberMenuTopBarActive
+import com.reikoonya.musikoo.ui.components.marqueeEdgeFade
 
 @Composable
 fun ArtistDetailScreen(
@@ -154,7 +158,7 @@ fun ArtistDetailScreen(
         // List fills entire screen and scrolls underneath floating top pill
         LazyColumn(
             state = rememberPersistentLazyListState("artist:$artistName"),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().topFadeBlur(),
             contentPadding = PaddingValues(top = 92.dp, bottom = 24.dp, start = 16.dp, end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -300,14 +304,16 @@ fun ArtistDetailScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                modifier = Modifier.marqueeEdgeFade(),
+                                softWrap = false
                             )
                             Text(
                                 text = song.album,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                modifier = Modifier.marqueeEdgeFade(),
+                                softWrap = false
                             )
                         }
                         Text(
@@ -321,7 +327,7 @@ fun ArtistDetailScreen(
         }
 
         // Top gradient scrim
-        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
+        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter), blurred = true)
 
         // Floating Top Bar Pill
         Row(
@@ -382,6 +388,8 @@ fun ArtistDetailScreen(
                             placeholder = "Search artist's songs",
                             modifier = Modifier.fillMaxWidth()
                         )
+                    } else if (rememberMenuTopBarActive() && !isSelecting) {
+                        PlainTopTitle(text = artistName)
                     } else {
             Surface(
                 shape = CircleShape,
@@ -474,7 +482,8 @@ fun ArtistDetailScreen(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            modifier = Modifier.marqueeEdgeFade(),
+                            softWrap = false
                         )
                     }
                 }

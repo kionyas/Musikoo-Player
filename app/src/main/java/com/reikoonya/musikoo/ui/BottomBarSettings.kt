@@ -75,6 +75,7 @@ import com.reikoonya.musikoo.util.BottomBarPrefs
 import com.reikoonya.musikoo.util.groupByGenre
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import com.reikoonya.musikoo.ui.components.marqueeEdgeFade
 
 /** Страница «Bottom Bar» в настройках: предпросмотр, поиск, порядок и состав элементов. */
 @Composable
@@ -367,14 +368,16 @@ private fun BarItemRow(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        modifier = Modifier.marqueeEdgeFade(),
+                        softWrap = false
                     )
                     Text(
                         text = item.barDescription,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        modifier = Modifier.marqueeEdgeFade(),
+                        softWrap = false
                     )
                 }
                 IconButton(onClick = { visibleState.targetState = false }) {

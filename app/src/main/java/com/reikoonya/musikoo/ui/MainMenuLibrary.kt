@@ -101,6 +101,7 @@ import com.reikoonya.musikoo.ui.components.MarkdownGuideDialog
 import com.reikoonya.musikoo.ui.components.MenuAction
 import com.reikoonya.musikoo.ui.components.PlaylistArt
 import com.reikoonya.musikoo.ui.components.TopFadeScrim
+import com.reikoonya.musikoo.ui.components.topFadeBlur
 import com.reikoonya.musikoo.ui.components.WavyProgress
 import com.reikoonya.musikoo.ui.components.bounceClickable
 import com.reikoonya.musikoo.ui.components.bounceCombinedClickable
@@ -124,11 +125,11 @@ fun LibraryTabsHeader(
         border = glassStroke(),
         tonalElevation = 2.dp
     ) {
-        Column(
+        Row(
             modifier = Modifier
-                .padding(horizontal = 14.dp, vertical = 5.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(3.dp)
+                .padding(horizontal = 14.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // Section title
             Text(
@@ -138,15 +139,15 @@ fun LibraryTabsHeader(
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            // Pagination dots below title
+            // Small pagination dots right next to the label (возле самого лейбла)
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 titles.forEachIndexed { index, _ ->
                     val selected = index == currentPage
                     val dotWidth by animateDpAsState(
-                        targetValue = if (selected) 20.dp else 8.dp,
+                        targetValue = if (selected) 14.dp else 5.dp,
                         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
                         label = "dotWidth"
                     )
@@ -156,7 +157,7 @@ fun LibraryTabsHeader(
                     )
                     Box(
                         modifier = Modifier
-                            .height(8.dp)
+                            .height(5.dp)
                             .width(dotWidth)
                             .clip(CircleShape)
                             .background(dotColor)
@@ -189,6 +190,7 @@ fun BoxScope.MainMenuLibrary(
     onAlbumClick: (String) -> Unit,
     onPlaylistClick: (String) -> Unit,
     onCreatePlaylist: () -> Unit,
+    titleState: LibraryTitleState? = null,
 ) {
     val context = LocalContext.current
 
@@ -224,10 +226,22 @@ fun BoxScope.MainMenuLibrary(
             val pagerState = rememberPagerState(pageCount = { pages.size })
             val scope = rememberCoroutineScope()
 
+            // Верхняя панель с меню показывает название страницы и следует за свайпом
+            if (titleState != null) {
+                androidx.compose.runtime.LaunchedEffect(pages, titleState) {
+                    titleState.titles = pages.map { libraryTitle(it) }
+                }
+                androidx.compose.runtime.LaunchedEffect(pagerState, titleState) {
+                    androidx.compose.runtime.snapshotFlow {
+                        pagerState.currentPage + pagerState.currentPageOffsetFraction
+                    }.collect { titleState.position = it }
+                }
+            }
+
             Box(modifier = Modifier.fillMaxSize()) {
                 HorizontalPager(
                     state = pagerState,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize().topFadeBlur()
                 ) { page ->
                     LazyVerticalGrid(
                         state = rememberPersistentLazyGridState("library_page_${pages.getOrElse(page) { page.toString() }}"),
@@ -244,7 +258,7 @@ fun BoxScope.MainMenuLibrary(
                             alpha = 1f - 0.5f * distance
                         },
                         contentPadding = PaddingValues(
-                            top = 132.dp,
+                            top = 104.dp,
                             bottom = if (currentSong != null && !isMiniPlayerHidden) 246.dp else 140.dp,
                             start = 16.dp,
                             end = 16.dp
@@ -303,7 +317,8 @@ fun BoxScope.MainMenuLibrary(
                                                     style = MaterialTheme.typography.bodyMedium,
                                                     fontWeight = FontWeight.Bold,
                                                     maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.marqueeEdgeFade(),
+                                                    softWrap = false,
                                                     color = MaterialTheme.colorScheme.onSurface
                                                 )
                                                 Text(
@@ -311,7 +326,8 @@ fun BoxScope.MainMenuLibrary(
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
+                                                    modifier = Modifier.marqueeEdgeFade(),
+                                                    softWrap = false
                                                 )
                                             }
                                         }
@@ -356,7 +372,8 @@ fun BoxScope.MainMenuLibrary(
                                                             style = MaterialTheme.typography.bodyMedium,
                                                             fontWeight = FontWeight.Bold,
                                                             maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis,
+                                                            modifier = Modifier.marqueeEdgeFade(),
+                                                            softWrap = false,
                                                             color = MaterialTheme.colorScheme.onSurface
                                                         )
                                                         Text(
@@ -367,7 +384,8 @@ fun BoxScope.MainMenuLibrary(
                                                             style = MaterialTheme.typography.labelSmall,
                                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                             maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis
+                                                            modifier = Modifier.marqueeEdgeFade(),
+                                                            softWrap = false
                                                         )
                                                     }
                                                 }
@@ -415,7 +433,8 @@ fun BoxScope.MainMenuLibrary(
                                                             style = MaterialTheme.typography.bodyMedium,
                                                             fontWeight = FontWeight.Bold,
                                                             maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis,
+                                                            modifier = Modifier.marqueeEdgeFade(),
+                                                            softWrap = false,
                                                             color = MaterialTheme.colorScheme.onSurface
                                                         )
                                                         Text(
@@ -426,7 +445,8 @@ fun BoxScope.MainMenuLibrary(
                                                             style = MaterialTheme.typography.labelSmall,
                                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                             maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis
+                                                            modifier = Modifier.marqueeEdgeFade(),
+                                                            softWrap = false
                                                         )
                                                     }
                                                 }
@@ -470,7 +490,8 @@ fun BoxScope.MainMenuLibrary(
                                                     style = MaterialTheme.typography.bodyMedium,
                                                     fontWeight = FontWeight.Bold,
                                                     maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.marqueeEdgeFade(),
+                                                    softWrap = false,
                                                     color = MaterialTheme.colorScheme.onSurface
                                                 )
                                                 Text(
@@ -481,7 +502,8 @@ fun BoxScope.MainMenuLibrary(
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
+                                                    modifier = Modifier.marqueeEdgeFade(),
+                                                    softWrap = false
                                                 )
                                             }
                                         }
@@ -494,18 +516,18 @@ fun BoxScope.MainMenuLibrary(
                 }
 
                 // Top Fade Scrim over pager content so scrolling items fade out
-                TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
+                TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter), blurred = true)
 
                 // Floating Library Tabs Header drawn ON TOP of TopFadeScrim (fully bright, un-darkened)
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .statusBarsPadding()
-                        .padding(top = 70.dp)
+                        .padding(top = 64.dp)
                         .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-                    LibraryTabsHeader(
+                    if (!com.reikoonya.musikoo.util.UiStylePrefs.menuTopBar) LibraryTabsHeader(
                         titles = pages.map { libraryTitle(it) },
                         currentPage = pagerState.currentPage.coerceIn(0, pages.lastIndex),
                         onPageSelected = { page ->
@@ -519,7 +541,7 @@ fun BoxScope.MainMenuLibrary(
             LazyVerticalGrid(
                 state = rememberPersistentLazyGridState("main"),
                 columns = GridCells.Fixed(3),
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().topFadeBlur(),
                 contentPadding = PaddingValues(
                     top = 92.dp,
                     bottom = if (currentSong != null && !isMiniPlayerHidden) 246.dp else 140.dp,
@@ -587,7 +609,8 @@ fun BoxScope.MainMenuLibrary(
                                                     style = MaterialTheme.typography.bodyMedium,
                                                     fontWeight = FontWeight.Bold,
                                                     maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.marqueeEdgeFade(),
+                                                    softWrap = false,
                                                     color = MaterialTheme.colorScheme.onSurface
                                                 )
                                                 Text(
@@ -598,7 +621,8 @@ fun BoxScope.MainMenuLibrary(
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
+                                                    modifier = Modifier.marqueeEdgeFade(),
+                                                    softWrap = false
                                                 )
                                             }
                                         }
@@ -647,7 +671,8 @@ fun BoxScope.MainMenuLibrary(
                                                     style = MaterialTheme.typography.bodyMedium,
                                                     fontWeight = FontWeight.Bold,
                                                     maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.marqueeEdgeFade(),
+                                                    softWrap = false,
                                                     color = MaterialTheme.colorScheme.onSurface
                                                 )
                                                 Text(
@@ -658,7 +683,8 @@ fun BoxScope.MainMenuLibrary(
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
+                                                    modifier = Modifier.marqueeEdgeFade(),
+                                                    softWrap = false
                                                 )
                                             }
                                         }
@@ -721,7 +747,8 @@ fun BoxScope.MainMenuLibrary(
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = FontWeight.Bold,
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.marqueeEdgeFade(),
+                                            softWrap = false,
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
@@ -732,7 +759,8 @@ fun BoxScope.MainMenuLibrary(
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                            modifier = Modifier.marqueeEdgeFade(),
+                                            softWrap = false
                                         )
                                     }
                                 }
@@ -810,7 +838,8 @@ fun BoxScope.MainMenuLibrary(
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.marqueeEdgeFade(),
+                                        softWrap = false,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
@@ -818,7 +847,8 @@ fun BoxScope.MainMenuLibrary(
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        modifier = Modifier.marqueeEdgeFade(),
+                                        softWrap = false
                                     )
                                 }
                             }
@@ -840,7 +870,7 @@ fun BoxScope.MainMenuLibrary(
             modifier = Modifier.fillMaxSize()
         )
         // Top fade scrim: list rows softly disappear under the top pill, like on the other screens
-        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
+        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter), blurred = true)
     }
 }
 /** Название страницы свайпов по ключу раздела. */

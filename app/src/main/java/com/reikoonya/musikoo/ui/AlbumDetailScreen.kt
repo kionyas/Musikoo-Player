@@ -56,6 +56,7 @@ import com.reikoonya.musikoo.ui.components.AddToPlaylistDialog
 import com.reikoonya.musikoo.ui.components.ArtBackdrop
 import com.reikoonya.musikoo.ui.components.MenuAction
 import com.reikoonya.musikoo.ui.components.TopFadeScrim
+import com.reikoonya.musikoo.ui.components.topFadeBlur
 import com.reikoonya.musikoo.ui.components.bounceClickable
 import com.reikoonya.musikoo.ui.components.bounceCombinedClickable
 import com.reikoonya.musikoo.ui.components.cardFill
@@ -66,6 +67,9 @@ import com.reikoonya.musikoo.ui.components.rememberSongArt
 import com.reikoonya.musikoo.util.ShareUtils
 import com.reikoonya.musikoo.util.formatTime
 import com.reikoonya.musikoo.util.parseTrackNumber
+import com.reikoonya.musikoo.ui.components.PlainTopTitle
+import com.reikoonya.musikoo.ui.components.rememberMenuTopBarActive
+import com.reikoonya.musikoo.ui.components.marqueeEdgeFade
 
 @Composable
 fun AlbumDetailScreen(
@@ -157,7 +161,7 @@ fun AlbumDetailScreen(
 
         LazyColumn(
             state = rememberPersistentLazyListState("album:$albumName"),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().topFadeBlur(),
             contentPadding = PaddingValues(top = 92.dp, bottom = 24.dp, start = 16.dp, end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -316,7 +320,8 @@ fun AlbumDetailScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                modifier = Modifier.marqueeEdgeFade(),
+                                softWrap = false
                             )
                             val parsedTrack = parseTrackNumber(song.trackNumber).second
                             val trackLabel = if (parsedTrack != Int.MAX_VALUE && parsedTrack > 0) "#$parsedTrack" else "#${index + 1}"
@@ -325,7 +330,8 @@ fun AlbumDetailScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                modifier = Modifier.marqueeEdgeFade(),
+                                softWrap = false
                             )
                         }
                         Text(
@@ -339,7 +345,7 @@ fun AlbumDetailScreen(
         }
 
         // Top gradient scrim
-        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
+        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter), blurred = true)
 
         // Floating Top Bar Pill
         Row(
@@ -400,6 +406,8 @@ fun AlbumDetailScreen(
                             placeholder = "Search in album",
                             modifier = Modifier.fillMaxWidth()
                         )
+                    } else if (rememberMenuTopBarActive() && !isSelecting) {
+                        PlainTopTitle(text = albumName)
                     } else {
             Surface(
                 shape = CircleShape,
@@ -492,7 +500,8 @@ fun AlbumDetailScreen(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            modifier = Modifier.marqueeEdgeFade(),
+                            softWrap = false
                         )
                     }
                 }

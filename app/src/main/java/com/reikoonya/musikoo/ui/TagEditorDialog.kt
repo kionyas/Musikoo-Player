@@ -69,6 +69,10 @@ import com.reikoonya.musikoo.util.TagField
 import com.reikoonya.musikoo.util.TagWriter
 import com.reikoonya.musikoo.util.WriteResult
 import kotlinx.coroutines.launch
+import com.reikoonya.musikoo.ui.components.topFadeBlur
+import com.reikoonya.musikoo.ui.components.PlainTopTitle
+import com.reikoonya.musikoo.ui.components.rememberMenuTopBarActive
+import com.reikoonya.musikoo.ui.components.marqueeEdgeFade
 
 @Composable
 fun TagEditorDialog(
@@ -301,6 +305,7 @@ fun TagEditorDialog(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
+                    .topFadeBlur()
                     .windowInsetsPadding(WindowInsets.ime),
                 contentPadding = PaddingValues(
                     start = 16.dp,
@@ -413,7 +418,7 @@ fun TagEditorDialog(
             }
 
             // Edge-to-edge scrim under the floating header, like the other screens
-            TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
+            TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter), blurred = true)
 
             // Floating header: close, title pill with progress, save
             Row(
@@ -443,7 +448,25 @@ fun TagEditorDialog(
                     }
                 }
 
-                Surface(
+                if (rememberMenuTopBarActive()) {
+                    // New header: no pill, centered plain title with the track name under it
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        PlainTopTitle(text = "Tag Editor")
+                        Text(
+                            text = if (single) targets[0].title else "${targets.size} tracks",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            modifier = Modifier.marqueeEdgeFade(),
+                            softWrap = false
+                        )
+                    }
+                } else Surface(
                     modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = 8.dp),
@@ -469,7 +492,8 @@ fun TagEditorDialog(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            modifier = Modifier.marqueeEdgeFade(),
+                            softWrap = false
                         )
                         Text(
                             text = if (single) targets[0].title else "${targets.size} tracks",
@@ -477,7 +501,8 @@ fun TagEditorDialog(
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            modifier = Modifier.marqueeEdgeFade(),
+                            softWrap = false
                         )
                     }
                 }

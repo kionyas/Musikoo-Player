@@ -30,6 +30,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
+import com.reikoonya.musikoo.util.UiStylePrefs
+import androidx.compose.ui.text.style.TextAlign
 
 /** Spring used when a top pill grows or shrinks to fit new content. */
 private fun <T> pillSizeSpring() = spring<T>(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)
@@ -99,5 +105,64 @@ fun TopPill(
                 )
             }
         }
+    }
+}
+
+/**
+ * Is the new top header ("Menu Top Bar" setting) on: screens then show a plain title next to the
+ * round button (like the main screen) instead of the pill with a grabber.
+ */
+@Composable
+fun rememberMenuTopBarActive(): Boolean {
+    val appContext = LocalContext.current.applicationContext
+    remember { UiStylePrefs.ensureLoaded(appContext) }
+    return UiStylePrefs.menuTopBar
+}
+
+/** "INTERFACE & INTERACTION" -> "Interface & interaction": pill titles are upper case, plain ones are not. */
+private fun String.toPlainTitle(): String =
+    if (any { it.isLetter() } && this == uppercase()) lowercase().replaceFirstChar { it.uppercase() } else this
+
+/** Plain centered title of the new top header: no pill, sits on the blurred top fade. Changes with the same slide as on the main screen. */
+@Composable
+fun PlainTopTitle(text: String, modifier: Modifier = Modifier, normalizeCase: Boolean = true) {
+    AnimatedContent(
+        targetState = if (normalizeCase) text.toPlainTitle() else text,
+        modifier = modifier,
+        transitionSpec = {
+            (slideInVertically(tween(320, easing = FastOutSlowInEasing)) { it } +
+                fadeIn(tween(240, delayMillis = 60))) togetherWith
+                (slideOutVertically(tween(240, easing = FastOutSlowInEasing)) { -it } +
+                    fadeOut(tween(120))) using
+                SizeTransform(clip = false) { _, _ -> pillSizeSpring() }
+        },
+        label = "plainTopTitle"
+    ) { title ->
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            softWrap = false,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.marqueeEdgeFade(centerWhenFits = true)
+        )
+    }
+}
+
+/**
+ * Title slot of a floating top bar Row (back button, title, spacer): the pill by default, and with the
+ * "Menu Top Bar" setting a plain centered title without the pill.
+ */
+@Composable
+fun RowScope.TopBarTitle(text: String) {
+    if (rememberMenuTopBarActive()) {
+        Box(
+            modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+            contentAlignment = Alignment.Center
+        ) { PlainTopTitle(text) }
+    } else {
+        TopPill(text = text)
     }
 }

@@ -13,7 +13,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.ui.graphics.graphicsLayer
 import kotlin.math.PI
 import kotlin.math.sin
-import com.reikoonya.musikoo.ui.components.TopPill
+import com.reikoonya.musikoo.ui.components.TopBarTitle
 import com.reikoonya.musikoo.ui.components.MusikooSwitch
 import com.reikoonya.musikoo.ui.theme.FontChoice
 import com.reikoonya.musikoo.ui.components.expressiveBadgeShape
@@ -84,6 +84,7 @@ import androidx.compose.ui.unit.dp
 import com.reikoonya.musikoo.R
 import com.reikoonya.musikoo.ui.components.ArtBackdrop
 import com.reikoonya.musikoo.ui.components.TopFadeScrim
+import com.reikoonya.musikoo.ui.components.topFadeBlur
 import com.reikoonya.musikoo.ui.components.bounceClickable
 import com.reikoonya.musikoo.ui.components.cardFill
 import com.reikoonya.musikoo.ui.components.glassFill
@@ -95,6 +96,7 @@ import com.reikoonya.musikoo.ui.theme.MiniSwipeAction
 import com.reikoonya.musikoo.ui.theme.ThemeBrightness
 import com.reikoonya.musikoo.ui.theme.UiStyle
 import com.reikoonya.musikoo.util.AppIconMode
+import com.reikoonya.musikoo.ui.components.marqueeEdgeFade
 
 private enum class SettingsPage(val parent: SettingsPage?) {
     ROOT(null),
@@ -107,7 +109,7 @@ private enum class SettingsPage(val parent: SettingsPage?) {
 
 private fun SettingsPage.depth(): Int = generateSequence(this) { it.parent }.count() - 1
 
-private enum class SettingsSheet { THEME_FONT, BACKGROUND, SHAPES, APP_ICON, LASTFM, DOWNLOADS, MINI_GESTURES, BAR_ADD, LIBRARY_LAYOUT }
+private enum class SettingsSheet { THEME_FONT, BACKGROUND, SHAPES, APP_ICON, LASTFM, DOWNLOADS, MINI_GESTURES, BAR_ADD, LIBRARY_LAYOUT, TOP_BAR }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -154,7 +156,7 @@ fun SettingsScreen(
     // on the GPU and does not recompose the whole settings screen.
     val sheetOpen = sheet != null
     val blurRadiusDp by animateDpAsState(
-        targetValue = if (sheetOpen && UiStylePrefs.blurEnabled) 10.dp else 0.dp,
+        targetValue = if (sheetOpen && UiStylePrefs.blurEnabled) 6.dp else 0.dp,
         animationSpec = if (sheetOpen) {
             tween(300, easing = FastOutSlowInEasing)
         } else {
@@ -207,6 +209,7 @@ fun SettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .topFadeBlur()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
                 .navigationBarsPadding(),
@@ -457,6 +460,8 @@ fun SettingsScreen(
                         }
 
                         SettingsPage.APPEARANCE -> {
+                            val appearanceContext = androidx.compose.ui.platform.LocalContext.current
+                            remember(appearanceContext) { UiStylePrefs.ensureLoaded(appearanceContext) }
                             SettingsGroupCard {
                                 SettingsCardItem(
                                     icon = Icons.Rounded.Palette,
@@ -478,6 +483,13 @@ fun SettingsScreen(
                                     description = "Material 3 or mixed shapes",
                                     grouped = true,
                                     onClick = { sheetName = SettingsSheet.SHAPES.name }
+                                )
+                                SettingsCardItem(
+                                    icon = Icons.Rounded.BlurLinear,
+                                    title = "Top Bar",
+                                    description = "Header: ${if (UiStylePrefs.menuTopBar) "new" else "classic"} · Fade blur: ${if (UiStylePrefs.topFadeBlur) "on" else "off"}. Tap for a live preview",
+                                    grouped = true,
+                                    onClick = { sheetName = SettingsSheet.TOP_BAR.name }
                                 )
                             }
                             Spacer(modifier = Modifier.height(2.dp))
@@ -781,6 +793,9 @@ fun SettingsScreen(
                             SettingsSheet.LIBRARY_LAYOUT -> {
                                 LibraryLayoutSheetContent()
                             }
+                            SettingsSheet.TOP_BAR -> {
+                                TopBarSheetContent()
+                            }
                             SettingsSheet.BAR_ADD -> {
                                 BottomBarAddSheetContent(songs = songs)
                             }
@@ -866,7 +881,7 @@ fun SettingsScreen(
         }
 
         // iOS-style top fade scrim
-        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
+        TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter), blurred = true)
 
         // Floating Top Bar Pill
         Row(
@@ -906,7 +921,7 @@ fun SettingsScreen(
                 }
             }
 
-            TopPill(
+            TopBarTitle(
                 text = when (page) {
                     SettingsPage.ROOT -> stringResource(R.string.settings)
                     SettingsPage.DEVICE -> "DEVICE"
@@ -1131,7 +1146,8 @@ internal fun SettingsCardItem(
                     fontWeight = FontWeight.Bold,
                     color = if (hero) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    modifier = Modifier.marqueeEdgeFade(),
+                    softWrap = false
                 )
                 Text(
                     text = description,

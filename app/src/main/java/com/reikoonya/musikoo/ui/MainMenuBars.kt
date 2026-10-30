@@ -122,8 +122,26 @@ fun BoxScope.MainMenuTopBar(
     onAlbumClick: (String) -> Unit,
     onSettingsClick: () -> Unit,
     onAboutClick: () -> Unit,
+    libraryTabsMode: Boolean = false,
+    titleState: LibraryTitleState? = null,
+    onMenuClick: () -> Unit = {},
+    menuOpen: Boolean = false,
 ) {
-    Box(
+    val topBarContext = LocalContext.current.applicationContext
+    remember(topBarContext) { com.reikoonya.musikoo.util.UiStylePrefs.ensureLoaded(topBarContext) }
+    val menuStyle = com.reikoonya.musikoo.util.UiStylePrefs.menuTopBar && titleState != null
+
+    if (menuStyle && titleState != null) {
+        MenuTopBar(
+            mainMode = mainMode,
+            libraryTabsMode = libraryTabsMode,
+            titleState = titleState,
+            onMenuClick = onMenuClick,
+            menuOpen = menuOpen
+        )
+    }
+
+    if (!menuStyle) Box(
         modifier = Modifier
             .align(Alignment.TopCenter)
             .fillMaxWidth()
@@ -218,7 +236,8 @@ fun BoxScope.MainMenuTopBar(
         exit = fadeOut(tween(180))
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter))
+            TopFadeScrim(modifier = Modifier.align(Alignment.TopCenter), blurred = true)
+            val searchTitleMenuStyle = com.reikoonya.musikoo.ui.components.rememberMenuTopBarActive()
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -227,7 +246,26 @@ fun BoxScope.MainMenuTopBar(
                     .padding(horizontal = 12.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Surface(
+                if (searchTitleMenuStyle) Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .animateEnterExit(
+                            enter = fadeIn(tween(250)) + slideInVertically(
+                                tween(340, easing = FastOutSlowInEasing)
+                            ) { -it },
+                            exit = fadeOut(tween(200)) + slideOutVertically(tween(200)) { -it }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(R.string.search),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1
+                    )
+                } else Surface(
                     modifier = Modifier.animateEnterExit(
                         enter = scaleIn(
                             tween(340, easing = FastOutSlowInEasing),

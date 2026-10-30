@@ -30,6 +30,7 @@ import com.reikoonya.musikoo.ui.components.GlassIconButton
 import com.reikoonya.musikoo.ui.components.bounceClickable
 import com.reikoonya.musikoo.ui.components.glassStroke
 import com.reikoonya.musikoo.util.MusicPlayerManager
+import com.reikoonya.musikoo.ui.components.marqueeEdgeFade
 
 @Composable
 fun PlayerTransportRow(isPlaying: Boolean, accent: Color, onAccent: Color, onPlayPause: () -> Unit) {
@@ -195,8 +196,8 @@ private fun RowScope.PlayerNavSegment(
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
                     color = fg,
                     maxLines = 1,
+                    modifier = Modifier.marqueeEdgeFade(),
                     softWrap = false,
-                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
